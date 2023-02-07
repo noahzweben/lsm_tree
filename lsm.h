@@ -13,9 +13,10 @@ typedef struct _node
 typedef struct _lsm
 {
     int buffer_size;
-    node* buffer;
+    node *buffer;
 } lsm;
 
-lsm* create(int buffer_size);
+lsm *create(int buffer_size);
+void insert(lsm *lsm, keyType key, valType value);
 
 #endif
