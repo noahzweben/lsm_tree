@@ -6,17 +6,32 @@
 lsmtree *create_lsm(int buffer_size)
 {
     lsmtree *lsm = (lsmtree *)malloc(sizeof(lsmtree));
+    if (lsm == NULL)
+    {
+        printf("Error: malloc failed in create_lsm\n");
+        exit(1);
+    }
     lsm->buffer_size = buffer_size;
+    lsm->buffer_count = 0;
     lsm->buffer = (node *)malloc(sizeof(node) * buffer_size);
-    printf("ABC lsm buffer size: %d\n", lsm->buffer_size);
-    printf("pomter: %p\n", lsm);
+    if (lsm->buffer == NULL)
+    {
+        printf("Error: malloc failed in create_lsm\n");
+        exit(1);
+    }
     return lsm;
 }
 
+
 // insert a key-value pair into the LSM tree
-void insert(lsmtree *lsm, int key, int value)
+void insert_lsm(lsmtree *lsm, int key, int value)
 {
     // create new node on the stack
     node n = {key, value};
     lsm->buffer[(lsm->buffer_count)++] = n;
+}
+
+void destroy_lsm(lsmtree *lsm){
+    free(lsm->buffer);
+    free(lsm);
 }

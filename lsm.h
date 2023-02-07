@@ -18,6 +18,6 @@ typedef struct lsmtree
 } lsmtree;
 
 lsmtree *create_lsm(int buffer_size);
-void insert(lsmtree *lsm, keyType key, valType value);
-
+void insert_lsm(lsmtree *lsm, keyType key, valType value);
+void destroy_lsm(lsmtree *lsm);
 #endif
