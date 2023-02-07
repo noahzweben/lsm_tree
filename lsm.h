@@ -15,8 +15,8 @@ typedef struct _lsm
     int buffer_size;
     struct node *buffer;
 
-} hashtable;
+} lsm;
 
-*lsm create(int buffer_size);
+lsm* create(int buffer_size);
 
 #endif
