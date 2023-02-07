@@ -5,7 +5,7 @@
 // return a pointer to a new LSM tree
 lsmtree *create_lsm(int buffer_size)
 {
-    lsmtree *lsm = (lsmtree *)malloc(sizeof(lsm));
+    lsmtree *lsm = (lsmtree *)malloc(sizeof(lsmtree));
     lsm->buffer_size = buffer_size;
     lsm->buffer = (node *)malloc(sizeof(node) * buffer_size);
     printf("ABC lsm buffer size: %d\n", lsm->buffer_size);

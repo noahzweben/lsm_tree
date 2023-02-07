@@ -16,8 +16,8 @@ int main(void)
     // print lsm buffer size
     printf("Test: lsm buffer size: %d\n", lsm->buffer_size);
     printf("p0mter: %p\n", lsm);
-    // free(lsm->buffer);
-    // free(lsm);
+    free(lsm->buffer);
+    free(lsm);
 
     // assert(lsm->buffer_size == 10);
     // assert(lsm->buffer_count == 0);
