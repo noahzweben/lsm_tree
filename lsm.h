@@ -4,7 +4,7 @@
 typedef int keyType;
 typedef int valType;
 
-struct _node
+typedef struct _node
 {
     keyType key;
     valType value;
@@ -13,8 +13,7 @@ struct _node
 typedef struct _lsm
 {
     int buffer_size;
-    struct node *buffer;
-
+    node* buffer;
 } lsm;
 
 lsm* create(int buffer_size);
