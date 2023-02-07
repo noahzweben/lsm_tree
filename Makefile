@@ -12,7 +12,7 @@ main: lsm.o main.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LIBS)
 
 test: lsm.o test.o 
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LIBS)
+	$(CC) $(CFLAGS) -g -o $@ $^ $(LDFLAGS) $(LIBS)
 
 benchmark: lsm.o benchmark.o 
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LIBS)

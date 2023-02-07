@@ -17,7 +17,7 @@ typedef struct lsmtree
     node *buffer;
 } lsmtree;
 
-lsmtree *create(int buffer_size);
+lsmtree *create_lsm(int buffer_size);
 void insert(lsmtree *lsm, keyType key, valType value);
 
 #endif
