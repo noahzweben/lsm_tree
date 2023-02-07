@@ -4,19 +4,20 @@
 typedef int keyType;
 typedef int valType;
 
-typedef struct _node
+typedef struct node
 {
     keyType key;
     valType value;
 } node;
 
-typedef struct _lsm
+typedef struct lsmtree
 {
     int buffer_size;
+    int buffer_count;
     node *buffer;
-} lsm;
+} lsmtree;
 
-lsm *create(int buffer_size);
-void insert(lsm *lsm, keyType key, valType value);
+lsmtree *create(int buffer_size);
+void insert(lsmtree *lsm, keyType key, valType value);
 
 #endif

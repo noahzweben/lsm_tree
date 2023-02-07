@@ -12,5 +12,16 @@
 
 int main(void)
 {
-return 0;
+    lsmtree *lsm = create(10);
+    // print lsm buffer size
+    printf("Test: lsm buffer size: %d\n", lsm->buffer_size);
+    printf("p0mter: %p\n", lsm);
+    free(lsm->buffer);
+    free(lsm);
+
+    // assert(lsm->buffer_size == 10);
+    // assert(lsm->buffer_count == 0);
+    // assert(sizeof(*(lsm->buffer)) == sizeof(node) * lsm->buffer_size);
+
+    return 0;
 }
