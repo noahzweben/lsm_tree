@@ -22,7 +22,6 @@ lsmtree *create(int buffer_size)
     return lsm;
 }
 
-
 // insert a key-value pair into the LSM tree
 void insert(lsmtree *lsm, keyType key, valType value)
 {
@@ -32,12 +31,22 @@ void insert(lsmtree *lsm, keyType key, valType value)
 }
 
 // get a value
-int get(lsmtree *lsm, keyType key){
-        
+int get(lsmtree *lsm, keyType key)
+{
+    // search buffer for key
+    for (int i = 0; i < lsm->buffer_count; i++)
+    {
+        if (lsm->buffer[i].key == key)
+        {
+            return lsm->buffer[i].value;
+        }
+    }
+    // if not found in buffer then return -1
+    return -1;
 }
 
-void destroy(lsmtree *lsm){
+void destroy(lsmtree *lsm)
+{
     free(lsm->buffer);
     free(lsm);
 }
-
