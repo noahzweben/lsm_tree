@@ -8,13 +8,13 @@ default: main test benchmark
 %.o: %.c %.h
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-main: lsm.o main.o 
+main: lsm.o main.o helpers.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LIBS)
 
-test: lsm.o test.o 
+test: lsm.o test.o helpers.o
 	$(CC) $(CFLAGS) -g -o $@ $^ $(LDFLAGS) $(LIBS)
 
-benchmark: lsm.o benchmark.o 
+benchmark: lsm.o benchmark.o helpers.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LIBS)
 
 clean:

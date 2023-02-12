@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-
+#include <stdbool.h>
 #include "lsm.h"
 
 // This code is designed to test the correctness of your implementation.
@@ -37,8 +37,18 @@ int main(void)
     assert(get(lsm, 5) == 10);
     assert(get(lsm, 12) == 13);
     assert(get(lsm, 1) == -1);
-
     destroy(lsm);
 
+    // put 10 nodes in the buffer - triggers a move to disk (level 1)
+    lsm = create(10);
+    for (int i = 0; i < 10; i++)
+    {
+        insert(lsm, i, 2 * i);
+    }
+    assert(lsm->buffer_count == 0);
+    assert(get(lsm, 7) == 14);
+    assert(get(lsm, 12) == -1);
+
+    destroy(lsm);
     return 0;
 }

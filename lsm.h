@@ -1,5 +1,5 @@
-#ifndef CS265 // This is a header guard. It prevents the header from being included more than once.
-#define CS265
+#ifndef CS265_LSM // This is a header guard. It prevents the header from being included more than once.
+#define CS265_LSM
 
 typedef int keyType;
 typedef int valType;
@@ -18,7 +18,8 @@ typedef struct lsmtree
 } lsmtree;
 
 lsmtree *create(int buffer_size);
-void insert(lsmtree *lsm, keyType key, valType value);
 void destroy(lsmtree *lsm);
+void insert(lsmtree *lsm, keyType key, valType value);
 int get(lsmtree *lsm, keyType key);
+void move_to_disk(lsmtree *lsm, int level);
 #endif
