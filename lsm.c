@@ -83,11 +83,13 @@ int get(lsmtree *lsm, keyType key)
     {
         if (n.key == key)
         {
+            fclose(fp);
             return n.value;
         }
     }
 
     // if not found in buffer then return -1
+    fclose(fp);
     return -1;
 }
 
