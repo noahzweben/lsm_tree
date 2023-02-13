@@ -75,6 +75,7 @@ int main(void)
         assert(nodes[i].key == i);
         assert(nodes[i].value == 2 * i);
     }
+    fclose(fp);
     free(nodes);
     destroy(lsm);
 
