@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 
 int BLOCK_SIZE_NODES = 512;
+
 // return a pointer to a new LSM tree
 lsmtree *create(int buffer_size)
 {
@@ -15,16 +16,21 @@ lsmtree *create(int buffer_size)
         exit(1);
     }
 
-    lsm->level_count = 1;
-    lsm->levels = (level *)malloc(sizeof(level) * lsm->level_count);
+    // levels metadata
+    lsm->max_level = 0;
+    lsm->levels = (level *)malloc(sizeof(level) * (lsm->max_level + 1));
     if (lsm->levels == NULL)
     {
         printf("Error: malloc failed in create\n");
         exit(1);
     }
+
+    // initialize first level
     lsm->levels[0].level = 0;
     lsm->levels[0].count = 0;
     lsm->levels[0].size = buffer_size;
+
+    // create buffer
     lsm->buffer = (node *)malloc(sizeof(node) * buffer_size);
     if (lsm->buffer == NULL)
     {
@@ -45,8 +51,6 @@ void insert(lsmtree *lsm, keyType key, valType value)
     // if buffer is full, move to disk
     if (lsm->levels[0].count == lsm->levels[0].size)
     {
-        // move to disk
-        // clear buffer
         flush_from_buffer(lsm);
     }
 }
@@ -54,21 +58,7 @@ void insert(lsmtree *lsm, keyType key, valType value)
 // move from buffer to the disk
 void flush_from_buffer(lsmtree *lsm)
 {
-    if (lsm->level_count == 1)
-    {
-        // create level 1
-        lsm->level_count = 2;
-        lsm->levels = (level *)realloc(lsm->levels, sizeof(level) * lsm->level_count);
-        if (lsm->levels == NULL)
-        {
-            printf("Error: realloc failed in flush_from_buffer\n");
-            exit(1);
-        }
-        lsm->levels[1].level = 1;
-        lsm->levels[1].count = 0;
-        lsm->levels[1].size = BLOCK_SIZE_NODES * 10;
-    }
-
+    init_layer(lsm, 1);
     // open File fp for writing
     char filename[64];
     set_filename(filename, 1);
@@ -84,6 +74,35 @@ void flush_from_buffer(lsmtree *lsm)
     lsm->levels[1].count = lsm->levels[1].count + lsm->levels[0].count;
     lsm->levels[0].count = 0;
     fclose(fp);
+
+    // check if level 1 is full
+    if (lsm->levels[1].count == lsm->levels[1].size)
+    {
+        // flush_to_layer(lsm, 2);
+    }
+}
+
+// void flush_to_layer(lsmtree *lsm, int layer)
+// {
+//     init_layer(lsm, layer);
+// }
+
+void init_layer(lsmtree *lsm, int layer)
+{
+    if (lsm->max_level < layer)
+    {
+        lsm->max_level++;
+        // increase memory allocation for levels
+        lsm->levels = (level *)realloc(lsm->levels, sizeof(level) * (lsm->max_level + 1));
+        if (lsm->levels == NULL)
+        {
+            printf("Error: realloc failed in flush_from_buffer\n");
+            exit(1);
+        }
+        lsm->levels[layer].level = layer;
+        lsm->levels[layer].count = 0;
+        lsm->levels[layer].size = BLOCK_SIZE_NODES * 10;
+    }
 }
 
 // get a value

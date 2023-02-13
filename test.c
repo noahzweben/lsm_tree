@@ -47,6 +47,7 @@ int main(void)
         insert(lsm, i, 2 * i);
     }
     assert(lsm->levels[0].count == 0);
+    assert(lsm->levels[1].count == 10);
     assert(get(lsm, 7) == 14);
     assert(get(lsm, 12) == -1);
 
