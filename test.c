@@ -94,6 +94,11 @@ void test_3()
     assert(lsm->levels[1].count == 0);
     assert(lsm->levels[2].count == 200);
 
+    assert(get(lsm, 7) == 14);
+    assert(get(lsm, 1) == 2);
+    assert(get(lsm, 209) == 418);
+    assert(get(lsm, 210) == -1);
+
     destroy(lsm);
 }
 
