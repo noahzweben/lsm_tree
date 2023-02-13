@@ -45,7 +45,6 @@ void insert(lsmtree *lsm, keyType key, valType value)
 {
     // create new node on the stack
     node n = {key, value};
-    ;
     lsm->buffer[(lsm->levels[0].count)++] = n;
 
     // if buffer is full, move to disk
@@ -58,18 +57,16 @@ void insert(lsmtree *lsm, keyType key, valType value)
 // move from buffer to the disk
 void flush_from_buffer(lsmtree *lsm)
 {
-    init_layer(lsm, 1);
-    // open File fp for writing
-    char filename[64];
-    set_filename(filename, 1);
 
-    FILE *fp = fopen(filename, "w");
+    init_level(lsm, 1);
+
+    FILE *fp = fopen(lsm->levels[1].filepath, "a");
     if (fp == NULL)
     {
         printf("Error: fopen failed in move_to_disk\n");
         exit(1);
     }
-    // copy over buffer_count elements to fp
+
     fwrite(lsm->buffer, sizeof(node), lsm->levels[0].count, fp);
     lsm->levels[1].count = lsm->levels[1].count + lsm->levels[0].count;
     lsm->levels[0].count = 0;
@@ -78,30 +75,72 @@ void flush_from_buffer(lsmtree *lsm)
     // check if level 1 is full
     if (lsm->levels[1].count == lsm->levels[1].size)
     {
-        // flush_to_layer(lsm, 2);
+        flush_to_level(lsm, 2);
     }
 }
 
-// void flush_to_layer(lsmtree *lsm, int layer)
-// {
-//     init_layer(lsm, layer);
-// }
-
-void init_layer(lsmtree *lsm, int layer)
+void flush_to_level(lsmtree *lsm, int level)
 {
-    if (lsm->max_level < layer)
+    init_level(lsm, level);
+    int old_level = level - 1;
+    FILE *fp_old = fopen(lsm->levels[old_level].filepath, "w");
+    if (fp_old == NULL)
+    {
+        printf("Error: fopen failed in flush_to_level\n");
+        exit(1);
+    }
+    FILE *fp_new = fopen(lsm->levels[level].filepath, "a");
+    if (fp_new == NULL)
+    {
+        printf("Error: fopen failed in flush_to_level\n");
+        exit(1);
+    }
+
+    // create buffer that is size of old level
+    node *buffer = (node *)malloc(sizeof(node) * lsm->levels[old_level].count);
+    if (buffer == NULL)
+    {
+        printf("Error: malloc failed in flush_to_level\n");
+        exit(1);
+    }
+    // read old level into buffer
+    fread(buffer, sizeof(node), lsm->levels[old_level].count, fp_old);
+    // write buffer to new level
+    fwrite(buffer, sizeof(node), lsm->levels[old_level].count, fp_new);
+    // add to new level count
+    lsm->levels[level].count = lsm->levels[level].count + lsm->levels[old_level].count;
+
+    remove(lsm->levels[old_level].filepath);
+    // update old level count
+    lsm->levels[old_level].count = 0;
+
+    // close files
+    fclose(fp_old);
+    fclose(fp_new);
+    // free buffer
+    free(buffer);
+}
+
+void init_level(lsmtree *lsm, int level)
+{
+    if (lsm->max_level < level)
     {
         lsm->max_level++;
         // increase memory allocation for levels
-        lsm->levels = (level *)realloc(lsm->levels, sizeof(level) * (lsm->max_level + 1));
+
+        lsm->levels = (struct level *)realloc(lsm->levels, sizeof(level) * (lsm->max_level + 1));
+
         if (lsm->levels == NULL)
         {
             printf("Error: realloc failed in flush_from_buffer\n");
             exit(1);
         }
-        lsm->levels[layer].level = layer;
-        lsm->levels[layer].count = 0;
-        lsm->levels[layer].size = BLOCK_SIZE_NODES * 10;
+        print_tree(lsm);
+        set_filename(lsm->levels[level].filepath, level);
+        print_tree(lsm);
+        lsm->levels[level].level = level;
+        lsm->levels[level].count = 0;
+        lsm->levels[level].size = lsm->levels[level - 1].size * 10;
     }
 }
 
@@ -117,19 +156,25 @@ int get(lsmtree *lsm, keyType key)
         }
     }
 
-    int value = get_from_disk(lsm, key, 1);
+    // loop through levels and search disk
+    int value = -1;
+    for (int i = 1; i <= lsm->max_level; i++)
+    {
+        value = get_from_disk(lsm, key, i);
+        if (value != -1)
+        {
+            return value;
+        }
+    }
+
     return value;
 }
 
 int get_from_disk(lsmtree *lsm, keyType key, int level)
 {
-    (void)lsm;
-
     int value = -1;
     // open File fp for reading
-    char filename[64];
-    set_filename(filename, level);
-    FILE *fp = fopen(filename, "r");
+    FILE *fp = fopen(lsm->levels[level].filepath, "r");
     if (fp == NULL)
     {
         return -1;
@@ -156,12 +201,26 @@ int get_from_disk(lsmtree *lsm, keyType key, int level)
 
 void destroy(lsmtree *lsm)
 {
-    // remove level 1 file
-    char filename[64];
-    set_filename(filename, 1);
-    remove(filename);
+
+    // loop through levels and remove filepath
+    for (int i = 0; i <= lsm->max_level; i++)
+    {
+
+        remove(lsm->levels[i].filepath);
+    }
 
     free(lsm->levels);
     free(lsm->buffer);
     free(lsm);
+}
+
+void print_tree(lsmtree *lsm)
+{
+    printf("\n");
+    // loop through buffer and print
+    for (int i = 0; i < lsm->levels[0].count; i++)
+    {
+        printf("{%d,%d}, ", lsm->buffer[i].key, lsm->buffer[i].value);
+    }
+    printf("\n");
 }

@@ -4,6 +4,9 @@
 typedef int keyType;
 typedef int valType;
 
+// extern BLOCK_DATA_SIZE;
+extern int BLOCK_SIZE_NODES;
+
 typedef struct node
 {
     keyType key;
@@ -15,6 +18,8 @@ typedef struct level
     int level;
     int count;
     int size;
+    char filepath[64];
+
 } level;
 
 typedef struct lsmtree
@@ -31,6 +36,6 @@ void insert(lsmtree *lsm, keyType key, valType value);
 int get(lsmtree *lsm, keyType key);
 int get_from_disk(lsmtree *lsm, keyType key, int level);
 void flush_from_buffer(lsmtree *lsm);
-
-void init_layer(lsmtree *lsm, int level);
+void flush_to_level(lsmtree *lsm, int level);
+void init_level(lsmtree *lsm, int level);
 #endif

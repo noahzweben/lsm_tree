@@ -9,10 +9,23 @@
 // You do not need to significantly change it.
 // Compile and run it in the command line by typing:
 // make test; ./test
+void clean_files()
+{
+    remove("level0.txt");
+    remove("level1.txt");
+    remove("level2.txt");
+    remove("level3.txt");
+    remove("level4.txt");
+    remove("level5.txt");
+    remove("level6.txt");
+    remove("level7.txt");
+    remove("level8.txt");
+    remove("level9.txt");
+}
 
 int main(void)
 {
-    remove("level1.txt");
+    clean_files();
     // basic create functionality
     lsmtree *lsm = create(10);
     assert(lsm->levels[0].size == 10);
@@ -49,8 +62,24 @@ int main(void)
     assert(lsm->levels[0].count == 0);
     assert(lsm->levels[1].count == 10);
     assert(get(lsm, 7) == 14);
+    assert(get(lsm, 2) == 4);
     assert(get(lsm, 12) == -1);
+    // open level1.txt and check if the nodes are in order
+    FILE *fp = fopen("level1.txt", "r");
+    assert(fp != NULL);
+    node *nodes = (node *)malloc(sizeof(node) * BLOCK_SIZE_NODES);
+    int r = fread(nodes, sizeof(node), BLOCK_SIZE_NODES, fp);
+    assert(r == 10);
+    for (int i = 0; i < r; i++)
+    {
+        // print node and value
+        printf("key: %d, value: %d\n", nodes[i].key, nodes[i].value);
 
+        // assert(nodes[i].key == i);
+        // assert(nodes[i].value == 2 * i);
+    }
+    free(nodes);
     destroy(lsm);
+
     return 0;
 }
