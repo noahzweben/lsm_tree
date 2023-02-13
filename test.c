@@ -72,11 +72,8 @@ int main(void)
     assert(r == 10);
     for (int i = 0; i < r; i++)
     {
-        // print node and value
-        printf("key: %d, value: %d\n", nodes[i].key, nodes[i].value);
-
-        // assert(nodes[i].key == i);
-        // assert(nodes[i].value == 2 * i);
+        assert(nodes[i].key == i);
+        assert(nodes[i].value == 2 * i);
     }
     free(nodes);
     destroy(lsm);

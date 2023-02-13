@@ -122,31 +122,25 @@ void flush_to_level(lsmtree *lsm, int level)
     free(buffer);
 }
 
-void init_level(lsmtree *lsm, int level)
+void init_level(lsmtree *lsm, int new_level)
 {
-    if (lsm->max_level < level)
+    if (lsm->max_level < new_level)
     {
         lsm->max_level++;
         // increase memory allocation for levels
 
-        lsm->levels = (struct level *)realloc(lsm->levels, sizeof(level) * (lsm->max_level + 1));
+        lsm->levels = (level *)realloc(lsm->levels, sizeof(level) * (lsm->max_level + 1));
 
         if (lsm->levels == NULL)
         {
             printf("Error: realloc failed in flush_from_buffer\n");
             exit(1);
         }
-        // print_tree(lsm);
-        // set_filename(lsm->levels[level].filepath, level);
-        print_tree(lsm);
-        // printf("blob %lu", sizeof(lsm->levels[level].filepath));
-        // printf("dork %lu", sizeof("level1.txt"));
-        // strcpy(lsm->levels[level].filepath, "level1.txt");
-        lsm->levels[level]
-            .level = level;
-        lsm->levels[level].count = 0;
-        lsm->levels[level].size = lsm->levels[level - 1].size * 10;
-        print_tree(lsm);
+        set_filename(lsm->levels[new_level].filepath, new_level);
+        lsm->levels[new_level]
+            .level = new_level;
+        lsm->levels[new_level].count = 0;
+        lsm->levels[new_level].size = lsm->levels[new_level - 1].size * 10;
     }
 }
 
