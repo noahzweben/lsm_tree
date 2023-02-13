@@ -80,17 +80,17 @@ void flush_from_buffer(lsmtree *lsm)
     }
 }
 
-void flush_to_level(lsmtree *lsm, int level)
+void flush_to_level(lsmtree *lsm, int new_level)
 {
-    init_level(lsm, level);
-    int old_level = level - 1;
+    init_level(lsm, new_level);
+    int old_level = new_level - 1;
     FILE *fp_old = fopen(lsm->levels[old_level].filepath, "w");
     if (fp_old == NULL)
     {
         printf("Error: fopen failed in flush_to_level\n");
         exit(1);
     }
-    FILE *fp_new = fopen(lsm->levels[level].filepath, "a");
+    FILE *fp_new = fopen(lsm->levels[new_level].filepath, "a");
     if (fp_new == NULL)
     {
         printf("Error: fopen failed in flush_to_level\n");
@@ -109,7 +109,7 @@ void flush_to_level(lsmtree *lsm, int level)
     // write buffer to new level
     fwrite(buffer, sizeof(node), lsm->levels[old_level].count, fp_new);
     // add to new level count
-    lsm->levels[level].count = lsm->levels[level].count + lsm->levels[old_level].count;
+    lsm->levels[new_level].count = lsm->levels[new_level].count + lsm->levels[old_level].count;
 
     remove(lsm->levels[old_level].filepath);
     // update old level count
@@ -170,11 +170,11 @@ int get(lsmtree *lsm, keyType key)
     return value;
 }
 
-int get_from_disk(lsmtree *lsm, keyType key, int level)
+int get_from_disk(lsmtree *lsm, keyType key, int new_level)
 {
     int value = -1;
     // open File fp for reading
-    FILE *fp = fopen(lsm->levels[level].filepath, "r");
+    FILE *fp = fopen(lsm->levels[new_level].filepath, "r");
     if (fp == NULL)
     {
         return -1;
