@@ -222,5 +222,11 @@ void print_tree(lsmtree *lsm)
     {
         printf("{%d,%d}, ", lsm->buffer[i].key, lsm->buffer[i].value);
     }
+    // loop through levels and print level struct
+    for (int i = 1; i <= lsm->max_level; i++)
+    {
+        printf("\nLevel %d: %d/%d, fp: %s\n", lsm->levels[i].level, lsm->levels[i].count, lsm->levels[i].size, lsm->levels[i].filepath);
+    }
+
     printf("\n");
 }

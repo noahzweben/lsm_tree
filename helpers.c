@@ -3,5 +3,6 @@
 
 void set_filename(char *filename, int level)
 {
-    sprintf(filename, "level%i.txt", level);
+    // set filename to "level0.bin", "level1.bin", etc.
+    sprintf(filename, "level%d.txt", level);
 }
