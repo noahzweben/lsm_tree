@@ -118,9 +118,10 @@ int get_from_disk(lsmtree *lsm, keyType key, int level)
 
     // copy over buffer_count elements to fp
     node *nodes = (node *)malloc(sizeof(node) * BLOCK_SIZE_NODES);
-    fread(nodes, sizeof(node), BLOCK_SIZE_NODES, fp);
+    // read in BLOCK_SIZE_NODES nodes and print number of nodes read
+    int r = fread(nodes, sizeof(node), BLOCK_SIZE_NODES, fp);
     // loop through nodes and search for key
-    for (int i = 0; i < BLOCK_SIZE_NODES; i++)
+    for (int i = 0; i < r; i++)
     {
         if (nodes[i].key == key)
         {
