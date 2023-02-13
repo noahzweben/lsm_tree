@@ -2,7 +2,9 @@
 #include "helpers.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/stat.h>
 
+int BLOCK_SIZE_NODES = 512;
 // return a pointer to a new LSM tree
 lsmtree *create(int buffer_size)
 {
@@ -12,8 +14,17 @@ lsmtree *create(int buffer_size)
         printf("Error: malloc failed in create\n");
         exit(1);
     }
-    lsm->buffer_size = buffer_size;
-    lsm->buffer_count = 0;
+
+    int level_count = 1;
+    lsm->levels = (level *)malloc(sizeof(level) * level_count);
+    if (lsm->levels == NULL)
+    {
+        printf("Error: malloc failed in create\n");
+        exit(1);
+    }
+    lsm->levels[0].level = 0;
+    lsm->levels[0].count = 0;
+    lsm->levels[0].size = buffer_size;
     lsm->buffer = (node *)malloc(sizeof(node) * buffer_size);
     if (lsm->buffer == NULL)
     {
@@ -28,25 +39,40 @@ void insert(lsmtree *lsm, keyType key, valType value)
 {
     // create new node on the stack
     node n = {key, value};
-    lsm->buffer[(lsm->buffer_count)++] = n;
+    ;
+    lsm->buffer[(lsm->levels[0].count)++] = n;
 
-    // if buffere is full, move to disk
-    if (lsm->buffer_count == lsm->buffer_size)
+    // if buffer is full, move to disk
+    if (lsm->levels[0].count == lsm->levels[0].size)
     {
         // move to disk
         // clear buffer
-        move_to_disk(lsm, 1);
-        lsm->buffer_count = 0;
+        flush_from_buffer(lsm);
     }
 }
 
-// move the buffer to the disk
-void move_to_disk(lsmtree *lsm, int level)
+// move from buffer to the disk
+void flush_from_buffer(lsmtree *lsm)
 {
+    if (lsm->level_count == 1)
+    {
+        // create level 1
+        lsm->level_count = 2;
+        lsm->levels = (level *)realloc(lsm->levels, sizeof(level) * lsm->level_count);
+        if (lsm->levels == NULL)
+        {
+            printf("Error: realloc failed in flush_from_buffer\n");
+            exit(1);
+        }
+        lsm->levels[1].level = 1;
+        lsm->levels[1].count = 0;
+        lsm->levels[1].size = BLOCK_SIZE_NODES * 10;
+    }
 
     // open File fp for writing
     char filename[64];
-    set_filename(filename, level);
+    set_filename(filename, 1);
+
     FILE *fp = fopen(filename, "w");
     if (fp == NULL)
     {
@@ -54,7 +80,8 @@ void move_to_disk(lsmtree *lsm, int level)
         exit(1);
     }
     // copy over buffer_count elements to fp
-    fwrite(lsm->buffer, sizeof(node), lsm->buffer_count, fp);
+    fwrite(lsm->buffer, sizeof(node), lsm->levels[0].count, fp);
+    lsm->levels[1].count = lsm->levels[1].count + lsm->levels[0].count;
     fclose(fp);
 }
 
@@ -62,7 +89,7 @@ void move_to_disk(lsmtree *lsm, int level)
 int get(lsmtree *lsm, keyType key)
 {
     // search buffer for key
-    for (int i = 0; i < lsm->buffer_count; i++)
+    for (int i = 0; i < lsm->levels[0].count; i++)
     {
         if (lsm->buffer[i].key == key)
         {
@@ -70,27 +97,40 @@ int get(lsmtree *lsm, keyType key)
         }
     }
 
-    // search disk for key
+    int value = get_from_disk(lsm, key, 1);
+    return value;
+}
+
+int get_from_disk(lsmtree *lsm, keyType key, int level)
+{
+    (void)lsm;
+
+    int value = -1;
+    // open File fp for reading
     char filename[64];
-    set_filename(filename, 1);
+    set_filename(filename, level);
     FILE *fp = fopen(filename, "r");
     if (fp == NULL)
     {
         return -1;
     }
-    node n;
-    while (fread(&n, sizeof(node), 1, fp) == 1)
+
+    // copy over buffer_count elements to fp
+    node *nodes = (node *)malloc(sizeof(node) * BLOCK_SIZE_NODES);
+    fread(nodes, sizeof(node), BLOCK_SIZE_NODES, fp);
+    // loop through nodes and search for key
+    for (int i = 0; i < BLOCK_SIZE_NODES; i++)
     {
-        if (n.key == key)
+        if (nodes[i].key == key)
         {
-            fclose(fp);
-            return n.value;
+            value = nodes[i].value;
+            break;
         }
     }
 
-    // if not found in buffer then return -1
+    free(nodes);
     fclose(fp);
-    return -1;
+    return value;
 }
 
 void destroy(lsmtree *lsm)
@@ -100,6 +140,7 @@ void destroy(lsmtree *lsm)
     set_filename(filename, 1);
     remove(filename);
 
+    free(lsm->levels);
     free(lsm->buffer);
     free(lsm);
 }

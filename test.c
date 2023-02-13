@@ -14,12 +14,12 @@ int main(void)
 {
     // basic create functionality
     lsmtree *lsm = create(10);
-    assert(lsm->buffer_size == 10);
-    assert(lsm->buffer_count == 0);
+    assert(lsm->levels[0].size == 10);
+    assert(lsm->levels[0].count == 0);
 
     // first write functionality
     insert(lsm, 5, 10);
-    int buffer_count = lsm->buffer_count;
+    int buffer_count = lsm->levels[0].count;
     assert(buffer_count == 1);
     node new_node = lsm->buffer[buffer_count - 1];
     assert(new_node.key == 5);
@@ -27,7 +27,7 @@ int main(void)
 
     // second write functionality
     insert(lsm, 12, 13);
-    buffer_count = lsm->buffer_count;
+    buffer_count = lsm->levels[0].count;
     assert(buffer_count == 2);
     new_node = lsm->buffer[buffer_count - 1];
     assert(new_node.key == 12);
@@ -45,7 +45,7 @@ int main(void)
     {
         insert(lsm, i, 2 * i);
     }
-    assert(lsm->buffer_count == 0);
+    assert(lsm->levels[0].count == 0);
     assert(get(lsm, 7) == 14);
     assert(get(lsm, 12) == -1);
 

@@ -10,16 +10,25 @@ typedef struct node
     valType value;
 } node;
 
+typedef struct level
+{
+    int level;
+    int count;
+    int size;
+} level;
+
 typedef struct lsmtree
 {
-    int buffer_size;
-    int buffer_count;
     node *buffer;
+    int level_count;
+    level *levels;
+
 } lsmtree;
 
 lsmtree *create(int buffer_size);
 void destroy(lsmtree *lsm);
 void insert(lsmtree *lsm, keyType key, valType value);
 int get(lsmtree *lsm, keyType key);
-void move_to_disk(lsmtree *lsm, int level);
+int get_from_disk(lsmtree *lsm, keyType key, int level);
+void flush_from_buffer(lsmtree *lsm);
 #endif
