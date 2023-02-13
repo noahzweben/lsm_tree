@@ -203,7 +203,7 @@ void destroy(lsmtree *lsm)
 {
 
     // loop through levels and remove filepath
-    for (int i = 0; i <= lsm->max_level; i++)
+    for (int i = 1; i <= lsm->max_level; i++)
     {
 
         remove(lsm->levels[i].filepath);
