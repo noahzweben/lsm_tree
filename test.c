@@ -12,6 +12,7 @@
 
 int main(void)
 {
+    remove("level1.txt");
     // basic create functionality
     lsmtree *lsm = create(10);
     assert(lsm->levels[0].size == 10);

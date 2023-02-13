@@ -15,8 +15,8 @@ lsmtree *create(int buffer_size)
         exit(1);
     }
 
-    int level_count = 1;
-    lsm->levels = (level *)malloc(sizeof(level) * level_count);
+    lsm->level_count = 1;
+    lsm->levels = (level *)malloc(sizeof(level) * lsm->level_count);
     if (lsm->levels == NULL)
     {
         printf("Error: malloc failed in create\n");
@@ -82,6 +82,7 @@ void flush_from_buffer(lsmtree *lsm)
     // copy over buffer_count elements to fp
     fwrite(lsm->buffer, sizeof(node), lsm->levels[0].count, fp);
     lsm->levels[1].count = lsm->levels[1].count + lsm->levels[0].count;
+    lsm->levels[0].count = 0;
     fclose(fp);
 }
 
