@@ -3,6 +3,6 @@
 
 void set_filename(char *filename, int level)
 {
-    // set filename to "level0.bin", "level1.bin", etc.
+    // create a dynamic string and place in malloc
     sprintf(filename, "level%d.txt", level);
 }

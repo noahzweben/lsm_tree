@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <string.h>
 
 int BLOCK_SIZE_NODES = 512;
 
@@ -135,12 +136,17 @@ void init_level(lsmtree *lsm, int level)
             printf("Error: realloc failed in flush_from_buffer\n");
             exit(1);
         }
+        // print_tree(lsm);
+        // set_filename(lsm->levels[level].filepath, level);
         print_tree(lsm);
-        set_filename(lsm->levels[level].filepath, level);
-        print_tree(lsm);
-        lsm->levels[level].level = level;
+        // printf("blob %lu", sizeof(lsm->levels[level].filepath));
+        // printf("dork %lu", sizeof("level1.txt"));
+        // strcpy(lsm->levels[level].filepath, "level1.txt");
+        lsm->levels[level]
+            .level = level;
         lsm->levels[level].count = 0;
         lsm->levels[level].size = lsm->levels[level - 1].size * 10;
+        print_tree(lsm);
     }
 }
 
@@ -223,7 +229,7 @@ void print_tree(lsmtree *lsm)
         printf("{%d,%d}, ", lsm->buffer[i].key, lsm->buffer[i].value);
     }
     // loop through levels and print level struct
-    for (int i = 1; i <= lsm->max_level; i++)
+    for (int i = 0; i <= lsm->max_level; i++)
     {
         printf("\nLevel %d: %d/%d, fp: %s\n", lsm->levels[i].level, lsm->levels[i].count, lsm->levels[i].size, lsm->levels[i].filepath);
     }
