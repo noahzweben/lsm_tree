@@ -23,9 +23,8 @@ void clean_files()
     remove("level9.txt");
 }
 
-int main(void)
+void test_1()
 {
-    clean_files();
     // basic create functionality
     lsmtree *lsm = create(10);
     assert(lsm->levels[0].size == 10);
@@ -52,19 +51,22 @@ int main(void)
     assert(get(lsm, 12) == 13);
     assert(get(lsm, 1) == -1);
     destroy(lsm);
+}
 
+void test_2()
+{
+    lsmtree *lsm = create(10);
     // put 10 nodes in the buffer - triggers a move to disk (level 1)
-    lsm = create(10);
     for (int i = 0; i < 10; i++)
     {
         insert(lsm, i, 2 * i);
     }
+
     assert(lsm->levels[0].count == 0);
     assert(lsm->levels[1].count == 10);
     assert(get(lsm, 7) == 14);
     assert(get(lsm, 2) == 4);
     assert(get(lsm, 12) == -1);
-    // open level1.txt and check if the nodes are in order
     FILE *fp = fopen("level1.txt", "r");
     assert(fp != NULL);
     node *nodes = (node *)malloc(sizeof(node) * BLOCK_SIZE_NODES);
@@ -78,6 +80,29 @@ int main(void)
     fclose(fp);
     free(nodes);
     destroy(lsm);
+}
+
+void test_3()
+{
+    lsmtree *lsm = create(10);
+    // put 10 nodes in the buffer - triggers a move to disk (level 1)
+    for (int i = 0; i < 209; i++)
+    {
+        insert(lsm, i, 2 * i);
+    }
+    assert(lsm->levels[0].count == 9);
+    assert(lsm->levels[1].count == 0);
+    assert(lsm->levels[2].count == 200);
+
+    destroy(lsm);
+}
+
+int main(void)
+{
+    clean_files();
+    test_1();
+    test_2();
+    test_3();
 
     return 0;
 }
