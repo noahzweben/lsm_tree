@@ -4,7 +4,6 @@
 typedef int keyType;
 typedef int valType;
 
-// extern BLOCK_DATA_SIZE;
 extern int BLOCK_SIZE_NODES;
 
 typedef struct node
