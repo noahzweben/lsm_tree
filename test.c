@@ -101,7 +101,6 @@ void level_2_test()
         // printf("key %d: %d\n", i, get(lsm, i));
         assert(get(lsm, i) == 2 * i);
     }
-
     assert(get(lsm, 210) == -1);
 
     destroy(lsm);

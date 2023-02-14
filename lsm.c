@@ -84,7 +84,7 @@ void flush_to_level(lsmtree *lsm, int new_level)
 {
     init_level(lsm, new_level);
     int old_level = new_level - 1;
-    FILE *fp_old = fopen(lsm->levels[old_level].filepath, "w");
+    FILE *fp_old = fopen(lsm->levels[old_level].filepath, "rb");
     if (fp_old == NULL)
     {
         printf("Error: fopen failed in flush_to_level\n");
@@ -99,7 +99,7 @@ void flush_to_level(lsmtree *lsm, int new_level)
 
     // create buffer that is size of old level
     int old_count = lsm->levels[old_level].count;
-    node *buffer = (node *)calloc(sizeof(node), old_count);
+    node *buffer = (node *)malloc(sizeof(node) * old_count);
 
     if (buffer == NULL)
     {
@@ -109,8 +109,7 @@ void flush_to_level(lsmtree *lsm, int new_level)
     // read old level into buffer
     fread(buffer, sizeof(node), old_count, fp_old);
     // write buffer to new level
-    int r = fwrite(buffer, sizeof(node), old_count, fp_new);
-    printf("haha r: %d\n", r);
+    fwrite(buffer, sizeof(node), old_count, fp_new);
 
     // add to new level count
     lsm->levels[new_level]
@@ -162,7 +161,6 @@ int get(lsmtree *lsm, keyType key)
 
     // loop through levels and search disk
     int value = -1;
-    printf("max_level: %d\n", lsm->max_level);
     for (int i = 1; i <= lsm->max_level; i++)
     {
         value = get_from_disk(lsm, key, i);
@@ -190,17 +188,14 @@ int get_from_disk(lsmtree *lsm, keyType key, int get_level)
     // read in BLOCK_SIZE_NODES nodes and print number of nodes read
     int r = fread(nodes, sizeof(node), BLOCK_SIZE_NODES, fp);
     // loop through nodes and search for key
-    printf("level %d - # %d:\n", get_level, r);
     for (int i = 0; i < r; i++)
     {
-        printf("{%d,%d}, ", nodes[i].key, nodes[i].value);
         if (nodes[i].key == key)
         {
             value = nodes[i].value;
             break;
         }
     }
-    printf("\n");
 
     free(nodes);
     fclose(fp);
