@@ -1,7 +1,16 @@
 CC=gcc -std=c99
 CFLAGS = -ggdb3 -W -Wall -Wextra -Werror -O3
-LDFLAGS = -luuid
+LDFLAGS =
 LIBS = 
+
+# if on linux add -luiid to LIBS
+# if on mac do nothing
+ifeq ($(shell uname),Darwin)
+	LIBS += 
+else
+	LIBS += -luuid
+endif
+
 
 default: main test benchmark
 
