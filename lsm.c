@@ -25,8 +25,8 @@ lsmtree *create(int buffer_size)
         printf("Error: malloc failed in create\n");
         exit(1);
     }
-
-    // initialize first level
+// initialize filepath to empty string
+    lsm->levels[0].filepath[0] = '\0';
     lsm->levels[0].level = 0;
     lsm->levels[0].count = 0;
     lsm->levels[0].size = buffer_size;
