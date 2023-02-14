@@ -98,19 +98,22 @@ void flush_to_level(lsmtree *lsm, int new_level)
     }
 
     // create buffer that is size of old level
-    node *buffer = (node *)malloc(sizeof(node) * lsm->levels[old_level].count);
+    int old_count = lsm->levels[old_level].count;
+    node *buffer = (node *)malloc(sizeof(node) * old_count);
     if (buffer == NULL)
     {
         printf("Error: malloc failed in flush_to_level\n");
         exit(1);
     }
     // read old level into buffer
-    fread(buffer, sizeof(node), lsm->levels[old_level].count, fp_old);
+    fread(buffer, sizeof(node), old_count, fp_old);
     // write buffer to new level
-    fwrite(buffer, sizeof(node), lsm->levels[old_level].count, fp_new);
+    int r = fwrite(buffer, sizeof(node), old_count, fp_new);
+    printf("haha r: %d\n", r);
 
     // add to new level count
-    lsm->levels[new_level].count = lsm->levels[new_level].count + lsm->levels[old_level].count;
+    lsm->levels[new_level]
+        .count = lsm->levels[new_level].count + lsm->levels[old_level].count;
 
     // update old level count
     lsm->levels[old_level].count = 0;
