@@ -90,7 +90,7 @@ void flush_to_level(lsmtree *lsm, int new_level)
         printf("Error: fopen failed in flush_to_level\n");
         exit(1);
     }
-    FILE *fp_new = fopen(lsm->levels[new_level].filepath, "a");
+    FILE *fp_new = fopen(lsm->levels[new_level].filepath, "ab");
     if (fp_new == NULL)
     {
         printf("Error: fopen failed in flush_to_level\n");
@@ -108,13 +108,13 @@ void flush_to_level(lsmtree *lsm, int new_level)
     fread(buffer, sizeof(node), lsm->levels[old_level].count, fp_old);
     // write buffer to new level
     fwrite(buffer, sizeof(node), lsm->levels[old_level].count, fp_new);
+
     // add to new level count
     lsm->levels[new_level].count = lsm->levels[new_level].count + lsm->levels[old_level].count;
 
-    remove(lsm->levels[old_level].filepath);
     // update old level count
     lsm->levels[old_level].count = 0;
-
+    remove(lsm->levels[old_level].filepath);
     // close files
     fclose(fp_old);
     fclose(fp_new);
