@@ -18,4 +18,4 @@ benchmark: lsm.o benchmark.o helpers.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LIBS)
 
 clean:
-	rm -f main test benchmark *.o
+	rm -f main test benchmark *.o *.bin

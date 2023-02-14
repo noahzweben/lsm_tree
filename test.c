@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <stdbool.h>
 #include "lsm.h"
+#include <uuid/uuid.h>
+#include "helpers.h"
 
 // This code is designed to test the correctness of your implementation.
 // You do not need to significantly change it.
@@ -67,7 +69,7 @@ void level_1_test()
     assert(get(lsm, 7) == 14);
     assert(get(lsm, 2) == 4);
     assert(get(lsm, 12) == -1);
-    FILE *fp = fopen("level1.txt", "r");
+    FILE *fp = fopen(lsm->levels[1].filepath, "r");
     assert(fp != NULL);
     node *nodes = (node *)malloc(sizeof(node) * BLOCK_SIZE_NODES);
     int r = fread(nodes, sizeof(node), BLOCK_SIZE_NODES, fp);
@@ -106,12 +108,34 @@ void level_2_test()
     destroy(lsm);
 }
 
+void level_3_test()
+{
+    lsmtree *lsm = create(10);
+    // put 10 nodes in the buffer - triggers a move to disk (level 1)
+    int max_int = 509;
+    for (int i = 0; i < max_int; i++)
+    {
+        insert(lsm, i, 2 * i);
+    }
+
+    // print lsm key 7
+    for (int i = 0; i < max_int; i++)
+    {
+        // printf("key %d: %d\n", i, get(lsm, i));
+        assert(get(lsm, i) == 2 * i);
+    }
+    assert(get(lsm, 511) == -1);
+    print_tree(lsm);
+    destroy(lsm);
+}
+
 int main(void)
 {
-    clean_files();
+
     // basic_buffer_test();
     // level_1_test();
-    level_2_test();
+    // level_2_test();
+    level_3_test();
 
     return 0;
 }

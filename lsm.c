@@ -82,47 +82,81 @@ void flush_from_buffer(lsmtree *lsm)
 
 void flush_to_level(lsmtree *lsm, int new_level)
 {
+
     init_level(lsm, new_level);
     int old_level = new_level - 1;
-    FILE *fp_old = fopen(lsm->levels[old_level].filepath, "rb");
-    if (fp_old == NULL)
+    char current_path[64];
+    strcpy(current_path, lsm->levels[new_level].filepath);
+
+    char old_path[64];
+    strcpy(old_path, lsm->levels[old_level].filepath);
+
+    FILE *fp_old_flush = fopen(lsm->levels[old_level].filepath, "rb");
+    if (fp_old_flush == NULL)
     {
-        printf("Error: fopen failed in flush_to_level\n");
-        exit(1);
-    }
-    FILE *fp_new = fopen(lsm->levels[new_level].filepath, "ab");
-    if (fp_new == NULL)
-    {
-        printf("Error: fopen failed in flush_to_level\n");
+        printf("Error1: fopen failed in flush_to_level\n");
         exit(1);
     }
 
+    FILE *fp_current_layer = fopen(current_path, "rb");
+    if (fp_current_layer == NULL)
+    {
+        printf("Error2: fopen failed in flush_to_level\n");
+        exit(1);
+    }
+    char new_path[64];
+    set_filename(new_path);
+    FILE *fp_temp = fopen(new_path, "wb");
+
     // create buffer that is size of old level
-    int old_count = lsm->levels[old_level].count;
-    node *buffer = (node *)malloc(sizeof(node) * old_count);
+    int buffer_size = lsm->levels[old_level].count + lsm->levels[new_level].count;
+    node *buffer = (node *)malloc(sizeof(node) * buffer_size);
 
     if (buffer == NULL)
     {
-        printf("Error: malloc failed in flush_to_level\n");
+        printf("Error3: malloc failed in flush_to_level\n");
         exit(1);
     }
     // read old level into buffer
-    fread(buffer, sizeof(node), old_count, fp_old);
+    fread(buffer, sizeof(node), lsm->levels[old_level].count, fp_old_flush);
+    // read current layer into buffer after old level
+    fread(buffer + lsm->levels[old_level].count, sizeof(node), lsm->levels[new_level].count, fp_current_layer);
+    // TODO: sort eventually
+
     // write buffer to new level
-    fwrite(buffer, sizeof(node), old_count, fp_new);
+    fwrite(buffer, sizeof(node), buffer_size, fp_temp);
 
     // add to new level count
     lsm->levels[new_level]
-        .count = lsm->levels[new_level].count + lsm->levels[old_level].count;
+        .count = buffer_size;
+
+    char new_old_path[64];
+    set_filename(new_old_path);
+    // touch new old level file
+    FILE *fp_new_old = fopen(new_old_path, "w");
+    fclose(fp_new_old);
+
+    // update filepaths
+    strcpy(lsm->levels[old_level].filepath, new_old_path);
+    strcpy(lsm->levels[new_level].filepath, new_path);
 
     // update old level count
-    lsm->levels[old_level].count = 0;
-    remove(lsm->levels[old_level].filepath);
+    lsm->levels[old_level]
+        .count = 0;
+    remove(current_path);
+    remove(old_path);
     // close files
-    fclose(fp_old);
-    fclose(fp_new);
+    fclose(fp_old_flush);
+    fclose(fp_current_layer);
+    fclose(fp_temp);
     // free buffer
     free(buffer);
+
+    // check if new level is full
+    if (lsm->levels[new_level].count == lsm->levels[new_level].size)
+    {
+        flush_to_level(lsm, new_level + 1);
+    }
 }
 
 void init_level(lsmtree *lsm, int new_level)
@@ -139,11 +173,19 @@ void init_level(lsmtree *lsm, int new_level)
             printf("Error: realloc failed in flush_from_buffer\n");
             exit(1);
         }
-        set_filename(lsm->levels[new_level].filepath, new_level);
+
         lsm->levels[new_level]
             .level = new_level;
         lsm->levels[new_level].count = 0;
         lsm->levels[new_level].size = lsm->levels[new_level - 1].size * 10;
+        set_filename(lsm->levels[new_level].filepath);
+        FILE *fp = fopen(lsm->levels[new_level].filepath, "wb");
+        if (fp == NULL)
+        {
+            printf("Error: fopen failed init_layer\n");
+            exit(1);
+        }
+        fclose(fp);
     }
 }
 
@@ -219,7 +261,6 @@ void destroy(lsmtree *lsm)
 
 void print_tree(lsmtree *lsm)
 {
-    printf("\n");
     // loop through buffer and print
     for (int i = 0; i < lsm->levels[0].count; i++)
     {
