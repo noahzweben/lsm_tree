@@ -158,6 +158,7 @@ int get(lsmtree *lsm, keyType key)
 
     // loop through levels and search disk
     int value = -1;
+    printf("max_level: %d\n", lsm->max_level);
     for (int i = 1; i <= lsm->max_level; i++)
     {
         value = get_from_disk(lsm, key, i);
@@ -170,11 +171,11 @@ int get(lsmtree *lsm, keyType key)
     return value;
 }
 
-int get_from_disk(lsmtree *lsm, keyType key, int new_level)
+int get_from_disk(lsmtree *lsm, keyType key, int get_level)
 {
     int value = -1;
     // open File fp for reading
-    FILE *fp = fopen(lsm->levels[new_level].filepath, "r");
+    FILE *fp = fopen(lsm->levels[get_level].filepath, "r");
     if (fp == NULL)
     {
         return -1;
@@ -185,14 +186,17 @@ int get_from_disk(lsmtree *lsm, keyType key, int new_level)
     // read in BLOCK_SIZE_NODES nodes and print number of nodes read
     int r = fread(nodes, sizeof(node), BLOCK_SIZE_NODES, fp);
     // loop through nodes and search for key
+    printf("level %d - # %d:\n", get_level, r);
     for (int i = 0; i < r; i++)
     {
+        printf("{%d,%d}, ", nodes[i].key, nodes[i].value);
         if (nodes[i].key == key)
         {
             value = nodes[i].value;
             break;
         }
     }
+    printf("\n");
 
     free(nodes);
     fclose(fp);

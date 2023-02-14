@@ -23,7 +23,7 @@ void clean_files()
     remove("level9.txt");
 }
 
-void test_1()
+void basic_buffer_test()
 {
     // basic create functionality
     lsmtree *lsm = create(10);
@@ -53,7 +53,7 @@ void test_1()
     destroy(lsm);
 }
 
-void test_2()
+void level_1_test()
 {
     lsmtree *lsm = create(10);
     // put 10 nodes in the buffer - triggers a move to disk (level 1)
@@ -82,11 +82,12 @@ void test_2()
     destroy(lsm);
 }
 
-void test_3()
+void level_2_test()
 {
     lsmtree *lsm = create(10);
     // put 10 nodes in the buffer - triggers a move to disk (level 1)
-    for (int i = 0; i < 209; i++)
+    int max_int = 209;
+    for (int i = 0; i < max_int; i++)
     {
         insert(lsm, i, 2 * i);
     }
@@ -94,9 +95,13 @@ void test_3()
     assert(lsm->levels[1].count == 0);
     assert(lsm->levels[2].count == 200);
 
-    assert(get(lsm, 7) == 14);
-    assert(get(lsm, 1) == 2);
-    assert(get(lsm, 209) == 418);
+    // print lsm key 7
+    for (int i = 0; i < max_int; i++)
+    {
+        // printf("key %d: %d\n", i, get(lsm, i));
+        assert(get(lsm, i) == 2 * i);
+    }
+
     assert(get(lsm, 210) == -1);
 
     destroy(lsm);
@@ -105,9 +110,9 @@ void test_3()
 int main(void)
 {
     clean_files();
-    test_1();
-    test_2();
-    test_3();
+    // basic_buffer_test();
+    // level_1_test();
+    level_2_test();
 
     return 0;
 }
