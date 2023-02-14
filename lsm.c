@@ -99,7 +99,8 @@ void flush_to_level(lsmtree *lsm, int new_level)
 
     // create buffer that is size of old level
     int old_count = lsm->levels[old_level].count;
-    node *buffer = (node *)malloc(sizeof(node) * old_count);
+    node *buffer = (node *)calloc(sizeof(node), old_count);
+
     if (buffer == NULL)
     {
         printf("Error: malloc failed in flush_to_level\n");
