@@ -129,13 +129,50 @@ void level_3_test()
     destroy(lsm);
 }
 
+void sort_test()
+{
+    lsmtree *lsm = create(10);
+    // put 10 nodes in the buffer - triggers a move to disk (level 1)
+    int max_int = 509;
+    for (int i = 0; i < max_int; i++)
+    {
+        insert(lsm, i, 2 * i);
+    }
+
+    // for each level 1 and on, ensure that the keys are sorted
+    for (int i = 1; i <= lsm->max_level; i++)
+    {
+        const int level_count = lsm->levels[i].count;
+        if (level_count == 0)
+        {
+            continue;
+        }
+        FILE *fp = fopen(lsm->levels[i].filepath, "r");
+        assert(fp != NULL);
+        node *nodes = (node *)malloc(sizeof(node) * level_count);
+        int r = fread(nodes, sizeof(node), level_count, fp);
+        assert(r == lsm->levels[i].count);
+        for (int j = 0; j < r - 1; j++)
+        {
+            assert(nodes[j].key < nodes[j + 1].key);
+        }
+        fclose(fp);
+        free(nodes);
+    }
+
+    assert(get(lsm, 511) == -1);
+    print_tree(lsm);
+    destroy(lsm);
+}
+
 int main(void)
 {
 
     // basic_buffer_test();
     // level_1_test();
     // level_2_test();
-    level_3_test();
+    // level_3_test();
+    sort_test();
 
     return 0;
 }

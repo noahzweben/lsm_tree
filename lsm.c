@@ -25,7 +25,7 @@ lsmtree *create(int buffer_size)
         printf("Error: malloc failed in create\n");
         exit(1);
     }
-// initialize filepath to empty string
+    // initialize filepath to empty string
     lsm->levels[0].filepath[0] = '\0';
     lsm->levels[0].level = 0;
     lsm->levels[0].count = 0;
@@ -109,7 +109,7 @@ void flush_to_level(lsmtree *lsm, int new_level)
     FILE *fp_temp = fopen(new_path, "wb");
 
     // create buffer that is size of old level
-    int buffer_size = lsm->levels[old_level].count + lsm->levels[new_level].count;
+    const int buffer_size = lsm->levels[old_level].count + lsm->levels[new_level].count;
     node *buffer = (node *)malloc(sizeof(node) * buffer_size);
 
     if (buffer == NULL)
@@ -122,6 +122,7 @@ void flush_to_level(lsmtree *lsm, int new_level)
     // read current layer into buffer after old level
     fread(buffer + lsm->levels[old_level].count, sizeof(node), lsm->levels[new_level].count, fp_current_layer);
     // TODO: sort eventually
+    merge_sort(buffer, buffer_size);
 
     // write buffer to new level
     fwrite(buffer, sizeof(node), buffer_size, fp_temp);
@@ -273,4 +274,77 @@ void print_tree(lsmtree *lsm)
     }
 
     printf("\n");
+}
+
+void SORT_TYPE_CPY(node *dst, node *src, const int size)
+{
+    int i = 0;
+
+    for (; i < size; ++i)
+    {
+        dst[i] = src[i];
+    }
+}
+
+void merge_sort_recursive(node *new_buffer, node *buffer, int buffer_size)
+{
+    const int middle = buffer_size / 2;
+    int out = 0;
+    int i = 0;
+    int j = middle;
+
+    /* don't bother sorting an array of size <= 1 */
+    if (buffer_size <= 1)
+    {
+        return;
+    }
+
+    merge_sort_recursive(new_buffer, buffer, middle);
+    merge_sort_recursive(new_buffer, &buffer[middle], buffer_size - middle);
+
+    while (out != buffer_size)
+    {
+        if (i < middle)
+        {
+            if (j < buffer_size)
+            {
+                if (buffer[i].key - buffer[j].key <= 0)
+                {
+                    new_buffer[out] = buffer[i++];
+                }
+                else
+                {
+                    new_buffer[out] = buffer[j++];
+                }
+            }
+            else
+            {
+                new_buffer[out] = buffer[i++];
+            }
+        }
+        else
+        {
+            new_buffer[out] = buffer[j++];
+        }
+
+        out++;
+    }
+
+    SORT_TYPE_CPY(buffer, new_buffer, buffer_size);
+}
+
+void merge_sort(node *buffer, int buffer_size)
+{
+    node *new_buffer;
+
+    /* don't bother sorting an array of size <= 1 */
+    if (buffer_size <= 1)
+    {
+        return;
+    }
+
+    new_buffer = (node *)malloc(sizeof(node) * buffer_size);
+    merge_sort_recursive(new_buffer, buffer, buffer_size);
+
+    free(new_buffer);
 }
