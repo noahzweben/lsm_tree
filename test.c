@@ -125,7 +125,6 @@ void level_3_test()
         assert(get(lsm, i) == 2 * i);
     }
     assert(get(lsm, 511) == -1);
-    print_tree(lsm);
     destroy(lsm);
 }
 
@@ -161,17 +160,16 @@ void sort_test()
     }
 
     assert(get(lsm, 511) == -1);
-    print_tree(lsm);
     destroy(lsm);
 }
 
 int main(void)
 {
 
-    // basic_buffer_test();
-    // level_1_test();
-    // level_2_test();
-    // level_3_test();
+    basic_buffer_test();
+    level_1_test();
+    level_2_test();
+    level_3_test();
     sort_test();
 
     return 0;

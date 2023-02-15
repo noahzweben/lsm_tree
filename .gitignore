@@ -2,4 +2,4 @@
 benchmark
 main
 test
-level*
+*.bin
