@@ -8,3 +8,5 @@ Q: do merging in background process, what if it takes long enough that buffer fi
 * dedup 
 * single read
 * move all metadata creation to after we know we wont be flushing / layer full (otherwise wasted effort)
+
+* fix flush from buffer --> needs to get existing data

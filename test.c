@@ -133,7 +133,7 @@ void sort_test()
     lsmtree *lsm = create(10);
 
     // create an array of 500 random numbers
-    int max_int = 500;
+    int max_int = 525;
     int random_array[max_int];
     srand(time(NULL));
     for (int i = 0; i < max_int; i++)
@@ -142,6 +142,7 @@ void sort_test()
         random_array[i] = num;
         insert(lsm, num, 2 * num);
     }
+    print_tree("dork", lsm);
 
     // for each level 1 and on, ensure that the keys are sorted
     for (int i = 1; i <= lsm->max_level; i++)
@@ -173,34 +174,35 @@ void sort_test()
     destroy(lsm);
 }
 
-void larger_than_block_test()
+void fence_pointers_correct()
 {
     lsmtree *lsm = create(BLOCK_SIZE_NODES);
-    // insert 5000 random blocks in the tree
-    int max_int = 10000;
-    int random_array[max_int];
-    srand(time(NULL));
+    int max_int = BLOCK_SIZE_NODES * 2;
     for (int i = 0; i < max_int; i++)
     {
-        int num = rand() % 10000;
-        random_array[i] = num;
-        insert(lsm, num, 2 * num);
+
+        insert(lsm, i, 2 * i);
     }
     // ensure that the values are correct
+    print_tree("here", lsm);
     for (int i = 0; i < max_int; i++)
     {
-        assert(get(lsm, random_array[i]) == 2 * random_array[i]);
+        int getR = get(lsm, i);
+        printf("\n HIYA: key %d: %d\n", i, getR);
+        assert(getR == 2 * i);
     }
+
+    destroy(lsm);
 }
 int main(void)
 {
 
-    basic_buffer_test();
-    // level_1_test();
-    level_2_test();
+    // basic_buffer_test();
+    level_1_test();
+    // level_2_test();
     // level_3_test();
     // sort_test();
-    // larger_than_block_test();
+    // fence_pointers_correct();
 
     return 0;
 }
