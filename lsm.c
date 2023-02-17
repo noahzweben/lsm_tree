@@ -145,7 +145,7 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
     build_fence_pointers(&(lsm->levels[deeper_level]), buffer, buffer_size);
     // remove old fence pointers
     printf("im here\n");
-    if (lsm->levels[old_level].fence_pointers != NULL)
+    if (lsm->levels[old_level].fence_pointer_count > 0)
     {
         free(lsm->levels[old_level].fence_pointers);
     }
@@ -190,6 +190,8 @@ void init_level(lsmtree *lsm, int deeper_level)
             .level = deeper_level;
         lsm->levels[deeper_level].count = 0;
         lsm->levels[deeper_level].size = lsm->levels[deeper_level - 1].size * 10;
+        lsm->levels[deeper_level].fence_pointer_count = 0;
+        lsm->levels[deeper_level].fence_pointers = NULL;
         set_filename(lsm->levels[deeper_level].filepath);
         FILE *fp = fopen(lsm->levels[deeper_level].filepath, "wb");
         if (fp == NULL)
@@ -264,7 +266,7 @@ void destroy(lsmtree *lsm)
     {
 
         remove(lsm->levels[i].filepath);
-        if (lsm->levels[i].fence_pointers != NULL)
+        if (lsm->levels[i].fence_pointer_count > 0)
         {
             free(lsm->levels[i].fence_pointers);
         }
@@ -288,12 +290,14 @@ void print_tree(char *msg, lsmtree *lsm)
     {
         printf("\nLevel %d: %d/%d, fp: %s\n", lsm->levels[i].level, lsm->levels[i].count, lsm->levels[i].size, lsm->levels[i].filepath);
         // print fence pointers
+        if (i > 1){
         for (int j = 0; j < lsm->levels[i].fence_pointer_count; j++)
         {
             fence_pointer fp = lsm->levels[i].fence_pointers[j];
             printf("fp %d, %d, ", fp.key, fp.offset);
         }
         printf("\n");
+        }
     }
 
     printf("\n");
@@ -384,7 +388,9 @@ void build_fence_pointers(level *level, node *buffer, int buffer_size)
         new_fence_pointers[i].key = buffer[i * BLOCK_SIZE_NODES].key;
         new_fence_pointers[i].offset = i * BLOCK_SIZE_NODES;
     }
-    free(level->fence_pointers);
+    if (level->fence_pointer_count > 0){
+        free(level->fence_pointers);
+    }
     level->fence_pointers = new_fence_pointers;
     level->fence_pointer_count = fence_pointer_count;
 }
