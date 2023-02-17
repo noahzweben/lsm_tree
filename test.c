@@ -192,9 +192,8 @@ void fence_pointers_correct()
 
     // ensure that the fence pointers are correct
     assert(lsm->levels[1].fence_pointers[0].key == 0 + offset);
-    assert(lsm->levels[1].fence_pointers[0].offset == 0);
     assert(lsm->levels[1].fence_pointers[1].key == 512 + offset);
-    assert(lsm->levels[1].fence_pointers[1].offset == 4096);
+
 
     destroy(lsm);
 }

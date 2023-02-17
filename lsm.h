@@ -15,7 +15,6 @@ typedef struct node
 typedef struct fence_pointer
 {
     keyType key;
-    int offset;
 } fence_pointer;
 
 typedef struct level

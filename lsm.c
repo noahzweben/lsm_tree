@@ -253,9 +253,10 @@ int get_from_disk(lsmtree *lsm, keyType key, int get_level)
             break;
         }
     }
-    fence_pointer fep = lsm->levels[get_level].fence_pointers[fence_pointer_index];
+    
     // set file pointer to fence pointer index offset bytyes
-    fseek(fp, fep.offset, SEEK_SET);
+    int seek_amt = fence_pointer_index * BLOCK_SIZE_NODES * sizeof(node);
+    fseek(fp, seek_amt , SEEK_SET);
 
     // read in BLOCK_SIZE_NODES nodes and print number of nodes read
     int r = fread(nodes, sizeof(node), BLOCK_SIZE_NODES, fp);
@@ -312,7 +313,7 @@ void print_tree(char *msg, lsmtree *lsm)
             for (int j = 0; j < lsm->levels[i].fence_pointer_count; j++)
             {
                 fence_pointer fp = lsm->levels[i].fence_pointers[j];
-                printf("fp %d, %d, ", fp.key, fp.offset);
+                printf("fp %d, ", fp.key);
             }
             printf("\n");
         }
@@ -405,7 +406,6 @@ void build_fence_pointers(level *level, node *buffer, int buffer_size)
     for (int i = 0; i < fence_pointer_count; i++)
     {
         new_fence_pointers[i].key = buffer[i * BLOCK_SIZE_NODES].key;
-        new_fence_pointers[i].offset = i * BLOCK_SIZE_NODES * sizeof(node);
     }
     if (level->fence_pointer_count > 0)
     {
