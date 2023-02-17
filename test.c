@@ -197,11 +197,11 @@ void fence_pointers_correct()
 int main(void)
 {
 
-    // basic_buffer_test();
+    basic_buffer_test();
     level_1_test();
-    // level_2_test();
-    // level_3_test();
-    // sort_test();
+    level_2_test();
+    level_3_test();
+    sort_test();
     // fence_pointers_correct();
 
     return 0;

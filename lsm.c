@@ -30,6 +30,8 @@ lsmtree *create(int buffer_size)
     lsm->levels[0].level = 0;
     lsm->levels[0].count = 0;
     lsm->levels[0].size = buffer_size;
+    lsm->levels[0].fence_pointers = NULL;
+    lsm->levels[0].fence_pointer_count = 0;
 
     // create buffer
     lsm->buffer = (node *)malloc(sizeof(node) * buffer_size);
@@ -128,6 +130,9 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
         // touch new old level file
         FILE *fp_new_old = fopen(new_old_path, "w");
         fclose(fp_new_old);
+        remove(old_path);
+    // close files
+    fclose(fp_old_flush);
         strcpy(lsm->levels[old_level].filepath, new_old_path);
     }
 
@@ -145,9 +150,6 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
     lsm->levels[old_level]
         .count = 0;
     remove(current_path);
-    remove(old_path);
-    // close files
-    fclose(fp_old_flush);
     fclose(fp_current_layer);
     fclose(fp_temp);
     // free buffer
@@ -236,20 +238,20 @@ int get_from_disk(lsmtree *lsm, keyType key, int get_level)
         exit(1);
     }
 
-    int fence_pointer_index = 0;
-    // loop through fence pointers
-    for (int i = 0; i < lsm->levels[get_level].fence_pointer_count; i++)
-    {
-        // if key is less than fence pointer, break
-        if (key >= lsm->levels[get_level].fence_pointers[i].key)
-        {
-            fence_pointer_index = i;
-        }
-    }
-    fence_pointer fep = lsm->levels[get_level].fence_pointers[fence_pointer_index];
+    // int fence_pointer_index = 0;
+    // // loop through fence pointers
+    // for (int i = 0; i < lsm->levels[get_level].fence_pointer_count; i++)
+    // {
+    //     // if key is less than fence pointer, break
+    //     if (key >= lsm->levels[get_level].fence_pointers[i].key)
+    //     {
+    //         fence_pointer_index = i;
+    //     }
+    // }
+    // fence_pointer fep = lsm->levels[get_level].fence_pointers[fence_pointer_index];
 
     // set file pointer to fence pointer index offset bytyes
-    fseek(fp, fep.offset, SEEK_SET);
+    // fseek(fp, fep.offset, SEEK_SET);
 
     // read in BLOCK_SIZE_NODES nodes and print number of nodes read
     int r = fread(nodes, sizeof(node), BLOCK_SIZE_NODES, fp);
