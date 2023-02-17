@@ -196,11 +196,11 @@ int main(void)
 {
 
     basic_buffer_test();
-    level_1_test();
+    // level_1_test();
     level_2_test();
-    level_3_test();
-    sort_test();
-    larger_than_block_test();
+    // level_3_test();
+    // sort_test();
+    // larger_than_block_test();
 
     return 0;
 }

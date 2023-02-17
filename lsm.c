@@ -144,9 +144,14 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
     strcpy(lsm->levels[deeper_level].filepath, new_path);
     build_fence_pointers(&(lsm->levels[deeper_level]), buffer, buffer_size);
     // remove old fence pointers
-    free(lsm->levels[old_level].fence_pointers);
-    lsm->levels[old_level].fence_pointer_count = 0;
+    printf("im here\n");
+    if (lsm->levels[old_level].fence_pointers != NULL)
+    {
+        free(lsm->levels[old_level].fence_pointers);
+    }
 
+    lsm->levels[old_level].fence_pointer_count = 0;
+    print_tree("test", lsm);
     // update old level count
     lsm->levels[old_level]
         .count = 0;
@@ -270,8 +275,9 @@ void destroy(lsmtree *lsm)
     free(lsm);
 }
 
-void print_tree(lsmtree *lsm)
+void print_tree(char *msg, lsmtree *lsm)
 {
+    printf("%s\n", msg);
     // loop through buffer and print
     for (int i = 0; i < lsm->levels[0].count; i++)
     {
@@ -281,6 +287,13 @@ void print_tree(lsmtree *lsm)
     for (int i = 0; i <= lsm->max_level; i++)
     {
         printf("\nLevel %d: %d/%d, fp: %s\n", lsm->levels[i].level, lsm->levels[i].count, lsm->levels[i].size, lsm->levels[i].filepath);
+        // print fence pointers
+        for (int j = 0; j < lsm->levels[i].fence_pointer_count; j++)
+        {
+            fence_pointer fp = lsm->levels[i].fence_pointers[j];
+            printf("fp %d, %d, ", fp.key, fp.offset);
+        }
+        printf("\n");
     }
 
     printf("\n");
@@ -363,8 +376,8 @@ void build_fence_pointers(level *level, node *buffer, int buffer_size)
 {
     // allocate a fence pointer for every BLOCK_SIZE_NODEs nodes
     // todo +1 ?
-    fence_pointer *new_fence_pointers = (fence_pointer *)malloc(sizeof(fence_pointer) * (buffer_size / BLOCK_SIZE_NODES));
-    int fence_pointer_count = buffer_size / BLOCK_SIZE_NODES;
+    int fence_pointer_count = buffer_size / BLOCK_SIZE_NODES + 1;
+    fence_pointer *new_fence_pointers = (fence_pointer *)malloc(sizeof(fence_pointer) * fence_pointer_count);
     // loop through blocks of nodes and set fence pointers
     for (int i = 0; i < fence_pointer_count; i++)
     {
