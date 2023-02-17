@@ -133,7 +133,7 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
 
     // update filepaths
     strcpy(lsm->levels[deeper_level].filepath, new_path);
-    build_fence_pointers(&(lsm->levels[deeper_level]), buffer, buffer_size);
+    // build_fence_pointers(&(lsm->levels[deeper_level]), buffer, buffer_size);
     // remove old fence pointers
     if (lsm->levels[old_level].fence_pointer_count > 0)
     {
