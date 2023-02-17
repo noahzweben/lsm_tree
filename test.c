@@ -142,8 +142,6 @@ void sort_test()
         random_array[i] = num;
         insert(lsm, num, 2 * num);
     }
-    print_tree("dork", lsm);
-
     // for each level 1 and on, ensure that the keys are sorted
     for (int i = 1; i <= lsm->max_level; i++)
     {
@@ -178,22 +176,71 @@ void fence_pointers_correct()
 {
     lsmtree *lsm = create(BLOCK_SIZE_NODES);
     int max_int = BLOCK_SIZE_NODES * 2;
-    for (int i = 0; i < max_int; i++)
+    int offset = 11;
+    for (int i = offset; i < max_int + offset; i++)
     {
 
         insert(lsm, i, 2 * i);
     }
     // ensure that the values are correct
-    print_tree("here", lsm);
-    for (int i = 0; i < max_int; i++)
+
+    for (int i = offset; i < max_int + offset; i++)
     {
         int getR = get(lsm, i);
-        printf("\n HIYA: key %d: %d\n", i, getR);
         assert(getR == 2 * i);
+    }
+
+    // ensure that the fence pointers are correct
+    assert(lsm->levels[1].fence_pointers[0].key == 0 + offset);
+    assert(lsm->levels[1].fence_pointers[0].offset == 0);
+    assert(lsm->levels[1].fence_pointers[1].key == 512 + offset);
+    assert(lsm->levels[1].fence_pointers[1].offset == 4096);
+
+    destroy(lsm);
+}
+
+void large_buffer_size_complex()
+{
+    lsmtree *lsm = create(BLOCK_SIZE_NODES);
+    int max_int = BLOCK_SIZE_NODES * 214.1234;
+    int random_array[max_int];
+    for (int i = 0; i < max_int; i++)
+    {
+        int num = rand() % 1000;
+        random_array[i] = num;
+        insert(lsm, num, 2 * num);
+    }
+    // ensure that the values are correct
+
+    for (int i = 0; i < max_int; i++)
+    {
+        int getR = get(lsm, random_array[i]);
+        assert(getR == 2 * random_array[i]);
+    }
+    // assert that each level is sorted correctly
+    for (int i = 1; i <= lsm->max_level; i++)
+    {
+        const int level_count = lsm->levels[i].count;
+        if (level_count == 0)
+        {
+            continue;
+        }
+        FILE *fp = fopen(lsm->levels[i].filepath, "r");
+        assert(fp != NULL);
+        node *nodes = (node *)malloc(sizeof(node) * level_count);
+        int r = fread(nodes, sizeof(node), level_count, fp);
+        assert(r == lsm->levels[i].count);
+        for (int j = 0; j < r - 1; j++)
+        {
+            assert(nodes[j].key <= nodes[j + 1].key);
+        }
+        fclose(fp);
+        free(nodes);
     }
 
     destroy(lsm);
 }
+
 int main(void)
 {
 
@@ -202,7 +249,8 @@ int main(void)
     level_2_test();
     level_3_test();
     sort_test();
-    // fence_pointers_correct();
+    fence_pointers_correct();
+    large_buffer_size_complex();
 
     return 0;
 }

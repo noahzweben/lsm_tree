@@ -131,15 +131,16 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
         FILE *fp_new_old = fopen(new_old_path, "w");
         fclose(fp_new_old);
         remove(old_path);
-    // close files
-    fclose(fp_old_flush);
+        // close files
+        fclose(fp_old_flush);
         strcpy(lsm->levels[old_level].filepath, new_old_path);
     }
 
     // update filepaths
     strcpy(lsm->levels[deeper_level].filepath, new_path);
-    // build_fence_pointers(&(lsm->levels[deeper_level]), buffer, buffer_size);
-    // remove old fence pointers
+
+    // build and remove old fence pointers
+    build_fence_pointers(&(lsm->levels[deeper_level]), buffer, buffer_size);
     if (lsm->levels[old_level].fence_pointer_count > 0)
     {
         free(lsm->levels[old_level].fence_pointers);
@@ -238,20 +239,23 @@ int get_from_disk(lsmtree *lsm, keyType key, int get_level)
         exit(1);
     }
 
-    // int fence_pointer_index = 0;
+    int fence_pointer_index = 0;
     // // loop through fence pointers
-    // for (int i = 0; i < lsm->levels[get_level].fence_pointer_count; i++)
-    // {
-    //     // if key is less than fence pointer, break
-    //     if (key >= lsm->levels[get_level].fence_pointers[i].key)
-    //     {
-    //         fence_pointer_index = i;
-    //     }
-    // }
-    // fence_pointer fep = lsm->levels[get_level].fence_pointers[fence_pointer_index];
-
+    for (int i = 0; i < lsm->levels[get_level].fence_pointer_count; i++)
+    {
+        // if key is less than fence pointer, break
+        if (key >= lsm->levels[get_level].fence_pointers[i].key)
+        {
+            fence_pointer_index = i;
+        }
+        else
+        {
+            break;
+        }
+    }
+    fence_pointer fep = lsm->levels[get_level].fence_pointers[fence_pointer_index];
     // set file pointer to fence pointer index offset bytyes
-    // fseek(fp, fep.offset, SEEK_SET);
+    fseek(fp, fep.offset, SEEK_SET);
 
     // read in BLOCK_SIZE_NODES nodes and print number of nodes read
     int r = fread(nodes, sizeof(node), BLOCK_SIZE_NODES, fp);
@@ -259,7 +263,6 @@ int get_from_disk(lsmtree *lsm, keyType key, int get_level)
     for (int i = 0; i < r; i++)
     {
         // print node
-        // printf("key: %d, value: %d\n", nodes[i].key, nodes[i].value);
         if (nodes[i].key == key)
         {
             value = nodes[i].value;
@@ -393,23 +396,16 @@ void merge_sort(node *buffer, int buffer_size)
 
 void build_fence_pointers(level *level, node *buffer, int buffer_size)
 {
-    printf("creating fence pointers for level %d\n", level->level);
-    // loop through buffer and print
-    for (int i = 0; i < buffer_size; i++)
-    {
-        printf("{%d,%d}, ", buffer[i].key, buffer[i].value);
-    }
+
     // allocate a fence pointer for every BLOCK_SIZE_NODEs nodes
-    int fence_pointer_count = buffer_size / BLOCK_SIZE_NODES;
-    printf("\ncreating %d fence pointers\n", fence_pointer_count);
+    int fence_pointer_count = buffer_size / BLOCK_SIZE_NODES + (buffer_size % BLOCK_SIZE_NODES != 0);
 
     fence_pointer *new_fence_pointers = (fence_pointer *)malloc(sizeof(fence_pointer) * fence_pointer_count);
     // loop through blocks of nodes and set fence pointers
     for (int i = 0; i < fence_pointer_count; i++)
     {
         new_fence_pointers[i].key = buffer[i * BLOCK_SIZE_NODES].key;
-        new_fence_pointers[i].offset = i * BLOCK_SIZE_NODES;
-        printf("Created fence pointer %d, <%d, %d>\n", i, new_fence_pointers[i].key, new_fence_pointers[i].offset);
+        new_fence_pointers[i].offset = i * BLOCK_SIZE_NODES * sizeof(node);
     }
     if (level->fence_pointer_count > 0)
     {
