@@ -131,11 +131,16 @@ void level_3_test()
 void sort_test()
 {
     lsmtree *lsm = create(10);
-    // put 10 nodes in the buffer - triggers a move to disk (level 1)
-    int max_int = 509;
+
+    // create an array of 500 random numbers
+    int max_int = 500;
+    int random_array[max_int];
+    srand(time(NULL));
     for (int i = 0; i < max_int; i++)
     {
-        insert(lsm, i, 2 * i);
+        int num = rand() % 1000;
+        random_array[i] = num;
+        insert(lsm, num, 2 * num);
     }
 
     // for each level 1 and on, ensure that the keys are sorted
@@ -153,16 +158,40 @@ void sort_test()
         assert(r == lsm->levels[i].count);
         for (int j = 0; j < r - 1; j++)
         {
-            assert(nodes[j].key < nodes[j + 1].key);
+            assert(nodes[j].key <= nodes[j + 1].key);
         }
         fclose(fp);
         free(nodes);
     }
 
-    assert(get(lsm, 511) == -1);
+    // for each key in random_array, ensure that the value is correct
+    for (int i = 0; i < max_int; i++)
+    {
+        assert(get(lsm, random_array[i]) == 2 * random_array[i]);
+    }
+
     destroy(lsm);
 }
 
+void larger_than_block_test()
+{
+    lsmtree *lsm = create(BLOCK_SIZE_NODES);
+    // insert 5000 random blocks in the tree
+    int max_int = 10000;
+    int random_array[max_int];
+    srand(time(NULL));
+    for (int i = 0; i < max_int; i++)
+    {
+        int num = rand() % 10000;
+        random_array[i] = num;
+        insert(lsm, num, 2 * num);
+    }
+    // ensure that the values are correct
+    for (int i = 0; i < max_int; i++)
+    {
+        assert(get(lsm, random_array[i]) == 2 * random_array[i]);
+    }
+}
 int main(void)
 {
 
@@ -171,6 +200,7 @@ int main(void)
     level_2_test();
     level_3_test();
     sort_test();
+    larger_than_block_test();
 
     return 0;
 }

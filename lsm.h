@@ -12,12 +12,20 @@ typedef struct node
     valType value;
 } node;
 
+typedef struct fence_pointer
+{
+    keyType key;
+    int offset;
+} fence_pointer;
+
 typedef struct level
 {
     int level;
     int count;
     int size;
     char filepath[64];
+    int fence_pointer_count;
+    fence_pointer *fence_pointers;
 
 } level;
 
@@ -37,4 +45,5 @@ int get_from_disk(lsmtree *lsm, keyType key, int level);
 void flush_from_buffer(lsmtree *lsm);
 void flush_to_level(lsmtree *lsm, int level);
 void init_level(lsmtree *lsm, int level);
+void build_fence_pointers(level *level, node *buffer, int buffer_size);
 #endif

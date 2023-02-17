@@ -5,7 +5,7 @@
 #include <sys/stat.h>
 #include <string.h>
 
-int BLOCK_SIZE_NODES = 512;
+int BLOCK_SIZE_NODES = 4096 / sizeof(node);
 
 // return a pointer to a new LSM tree
 lsmtree *create(int buffer_size)
@@ -70,6 +70,8 @@ void flush_from_buffer(lsmtree *lsm)
 
     fwrite(lsm->buffer, sizeof(node), lsm->levels[0].count, fp);
     lsm->levels[1].count = lsm->levels[1].count + lsm->levels[0].count;
+    build_fence_pointers(&(lsm->levels[1]), lsm->buffer, lsm->levels[0].count);
+
     lsm->levels[0].count = 0;
     fclose(fp);
 
@@ -80,13 +82,13 @@ void flush_from_buffer(lsmtree *lsm)
     }
 }
 
-void flush_to_level(lsmtree *lsm, int new_level)
+void flush_to_level(lsmtree *lsm, int deeper_level)
 {
 
-    init_level(lsm, new_level);
-    int old_level = new_level - 1;
+    init_level(lsm, deeper_level);
+    int old_level = deeper_level - 1;
     char current_path[64];
-    strcpy(current_path, lsm->levels[new_level].filepath);
+    strcpy(current_path, lsm->levels[deeper_level].filepath);
 
     char old_path[64];
     strcpy(old_path, lsm->levels[old_level].filepath);
@@ -108,8 +110,8 @@ void flush_to_level(lsmtree *lsm, int new_level)
     set_filename(new_path);
     FILE *fp_temp = fopen(new_path, "wb");
 
-    // create buffer that is size of old level
-    const int buffer_size = lsm->levels[old_level].count + lsm->levels[new_level].count;
+    // create buffer that can accomodate both levels
+    const int buffer_size = lsm->levels[old_level].count + lsm->levels[deeper_level].count;
     node *buffer = (node *)malloc(sizeof(node) * buffer_size);
 
     if (buffer == NULL)
@@ -120,7 +122,7 @@ void flush_to_level(lsmtree *lsm, int new_level)
     // read old level into buffer
     fread(buffer, sizeof(node), lsm->levels[old_level].count, fp_old_flush);
     // read current layer into buffer after old level
-    fread(buffer + lsm->levels[old_level].count, sizeof(node), lsm->levels[new_level].count, fp_current_layer);
+    fread(buffer + lsm->levels[old_level].count, sizeof(node), lsm->levels[deeper_level].count, fp_current_layer);
     // TODO: sort eventually
     merge_sort(buffer, buffer_size);
 
@@ -128,7 +130,7 @@ void flush_to_level(lsmtree *lsm, int new_level)
     fwrite(buffer, sizeof(node), buffer_size, fp_temp);
 
     // add to new level count
-    lsm->levels[new_level]
+    lsm->levels[deeper_level]
         .count = buffer_size;
 
     char new_old_path[64];
@@ -139,7 +141,11 @@ void flush_to_level(lsmtree *lsm, int new_level)
 
     // update filepaths
     strcpy(lsm->levels[old_level].filepath, new_old_path);
-    strcpy(lsm->levels[new_level].filepath, new_path);
+    strcpy(lsm->levels[deeper_level].filepath, new_path);
+    build_fence_pointers(&(lsm->levels[deeper_level]), buffer, buffer_size);
+    // remove old fence pointers
+    free(lsm->levels[old_level].fence_pointers);
+    lsm->levels[old_level].fence_pointer_count = 0;
 
     // update old level count
     lsm->levels[old_level]
@@ -154,15 +160,15 @@ void flush_to_level(lsmtree *lsm, int new_level)
     free(buffer);
 
     // check if new level is full
-    if (lsm->levels[new_level].count == lsm->levels[new_level].size)
+    if (lsm->levels[deeper_level].count == lsm->levels[deeper_level].size)
     {
-        flush_to_level(lsm, new_level + 1);
+        flush_to_level(lsm, deeper_level + 1);
     }
 }
 
-void init_level(lsmtree *lsm, int new_level)
+void init_level(lsmtree *lsm, int deeper_level)
 {
-    if (lsm->max_level < new_level)
+    if (lsm->max_level < deeper_level)
     {
         lsm->max_level++;
         // increase memory allocation for levels
@@ -175,12 +181,12 @@ void init_level(lsmtree *lsm, int new_level)
             exit(1);
         }
 
-        lsm->levels[new_level]
-            .level = new_level;
-        lsm->levels[new_level].count = 0;
-        lsm->levels[new_level].size = lsm->levels[new_level - 1].size * 10;
-        set_filename(lsm->levels[new_level].filepath);
-        FILE *fp = fopen(lsm->levels[new_level].filepath, "wb");
+        lsm->levels[deeper_level]
+            .level = deeper_level;
+        lsm->levels[deeper_level].count = 0;
+        lsm->levels[deeper_level].size = lsm->levels[deeper_level - 1].size * 10;
+        set_filename(lsm->levels[deeper_level].filepath);
+        FILE *fp = fopen(lsm->levels[deeper_level].filepath, "wb");
         if (fp == NULL)
         {
             printf("Error: fopen failed init_layer\n");
@@ -253,6 +259,10 @@ void destroy(lsmtree *lsm)
     {
 
         remove(lsm->levels[i].filepath);
+        if (lsm->levels[i].fence_pointers != NULL)
+        {
+            free(lsm->levels[i].fence_pointers);
+        }
     }
 
     free(lsm->levels);
@@ -347,4 +357,21 @@ void merge_sort(node *buffer, int buffer_size)
     merge_sort_recursive(new_buffer, buffer, buffer_size);
 
     free(new_buffer);
+}
+
+void build_fence_pointers(level *level, node *buffer, int buffer_size)
+{
+    // allocate a fence pointer for every BLOCK_SIZE_NODEs nodes
+    // todo +1 ?
+    fence_pointer *new_fence_pointers = (fence_pointer *)malloc(sizeof(fence_pointer) * (buffer_size / BLOCK_SIZE_NODES));
+    int fence_pointer_count = buffer_size / BLOCK_SIZE_NODES;
+    // loop through blocks of nodes and set fence pointers
+    for (int i = 0; i < fence_pointer_count; i++)
+    {
+        new_fence_pointers[i].key = buffer[i * BLOCK_SIZE_NODES].key;
+        new_fence_pointers[i].offset = i * BLOCK_SIZE_NODES;
+    }
+    free(level->fence_pointers);
+    level->fence_pointers = new_fence_pointers;
+    level->fence_pointer_count = fence_pointer_count;
 }
