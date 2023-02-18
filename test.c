@@ -7,24 +7,6 @@
 #include <uuid/uuid.h>
 #include "helpers.h"
 
-// This code is designed to test the correctness of your implementation.
-// You do not need to significantly change it.
-// Compile and run it in the command line by typing:
-// make test; ./test
-void clean_files()
-{
-    remove("level0.txt");
-    remove("level1.txt");
-    remove("level2.txt");
-    remove("level3.txt");
-    remove("level4.txt");
-    remove("level5.txt");
-    remove("level6.txt");
-    remove("level7.txt");
-    remove("level8.txt");
-    remove("level9.txt");
-}
-
 void basic_buffer_test()
 {
     // basic create functionality
