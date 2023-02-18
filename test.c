@@ -97,10 +97,9 @@ void level_2_test()
     assert(lsm->levels[1].count == 0);
     assert(lsm->levels[2].count == 200);
 
-    // print lsm key 7
     for (int i = 0; i < max_int; i++)
     {
-        // printf("key %d: %d\n", i, get(lsm, i));
+
         assert(get(lsm, i) == 2 * i);
     }
     assert(get(lsm, 210) == -1);
@@ -193,7 +192,6 @@ void fence_pointers_correct()
     // ensure that the fence pointers are correct
     assert(lsm->levels[1].fence_pointers[0].key == 0 + offset);
     assert(lsm->levels[1].fence_pointers[1].key == 512 + offset);
-
 
     destroy(lsm);
 }

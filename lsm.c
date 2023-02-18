@@ -253,24 +253,44 @@ int get_from_disk(lsmtree *lsm, keyType key, int get_level)
             break;
         }
     }
-    
+
     // set file pointer to fence pointer index offset bytyes
     int seek_amt = fence_pointer_index * BLOCK_SIZE_NODES * sizeof(node);
-    fseek(fp, seek_amt , SEEK_SET);
+    fseek(fp, seek_amt, SEEK_SET);
 
     // read in BLOCK_SIZE_NODES nodes and print number of nodes read
     int r = fread(nodes, sizeof(node), BLOCK_SIZE_NODES, fp);
-    // loop through nodes and search for key
-    for (int i = 0; i < r; i++)
+
+    // if fence pointer key is equal to key, return node at index 0 (don't do extra work of binary search)
+    if (lsm->levels[get_level].fence_pointer_count > 0 && lsm->levels[get_level].fence_pointers[fence_pointer_index].key == key)
     {
-        // print node
-        if (nodes[i].key == key)
-        {
-            value = nodes[i].value;
-            break;
-        }
+        value = nodes[0].value;
+        free(nodes);
+        fclose(fp);
+        return value;
     }
 
+    // binary search through nodes for key
+    int low = 0;
+    int high = r - 1;
+    int mid;
+    while (low <= high)
+    {
+        mid = (low + high) / 2;
+        if (nodes[mid].key == key)
+        {
+            value = nodes[mid].value;
+            break;
+        }
+        else if (nodes[mid].key < key)
+        {
+            low = mid + 1;
+        }
+        else
+        {
+            high = mid - 1;
+        }
+    }
     free(nodes);
     fclose(fp);
     return value;
