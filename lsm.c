@@ -85,9 +85,10 @@ void copy_tree(lsmtree *new_lsm, lsmtree *src_lsm)
     // copy levels
     for (int i = 0; i <= src_lsm->max_level; i++)
     {
-        // free fence pointers before theyre copied over
+        // free fence pointers and files before theyre copied over
         if (new_lsm->max_level >= i && new_lsm->levels[i].fence_pointer_count > 0)
         {
+            remove(new_lsm->levels[i].filepath);
             free(new_lsm->levels[i].fence_pointers);
         }
         // copy levels
@@ -97,13 +98,7 @@ void copy_tree(lsmtree *new_lsm, lsmtree *src_lsm)
         {
             new_lsm->levels[i].fence_pointers = (fence_pointer *)malloc(sizeof(fence_pointer) * src_lsm->levels[i].fence_pointer_count);
             memcpy(new_lsm->levels[i].fence_pointers, src_lsm->levels[i].fence_pointers, sizeof(fence_pointer) * src_lsm->levels[i].fence_pointer_count);
-            // strcpy filepath
-            // strcpy(new_lsm->levels[i].filepath, src_lsm->levels[i].filepath);
         }
-
-        // copy filepath
-        // strcpy(new_lsm->levels[i].filepath, src_lsm->levels[i].filepath);
-        // free(temp);
     }
     // copy flush_buffer
     memcpy(new_lsm->flush_buffer, src_lsm->flush_buffer, src_lsm->memtable_level->size * sizeof(node));
@@ -459,6 +454,12 @@ void compact(node *buffer, int *buffer_size)
 
 void destroy(lsmtree *lsm, int keep_files)
 {
+    // acquire merge and read mutex if getting rid of files (end of function)
+    if (keep_files == 0)
+    {
+        pthread_mutex_lock(&merge_mutex);
+        pthread_mutex_lock(&read_mutex);
+    }
 
     // loop through levels and remove filepath
     for (int i = 1; i <= lsm->max_level; i++)
@@ -479,6 +480,11 @@ void destroy(lsmtree *lsm, int keep_files)
     free(lsm->flush_buffer);
     free(lsm->memtable);
     free(lsm);
+    if (keep_files == 0)
+    {
+        pthread_mutex_unlock(&merge_mutex);
+        pthread_mutex_unlock(&read_mutex);
+    }
 }
 
 void print_tree(char *msg, lsmtree *lsm)

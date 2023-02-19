@@ -11,6 +11,7 @@
 
 void basic_buffer_test()
 {
+    printf("basic_buffer_test\n");
     // basic create functionality
     lsmtree *lsm = create(10);
     assert(lsm->memtable_level->size == 10);
@@ -45,6 +46,7 @@ void basic_buffer_test()
 
 void level_1_test()
 {
+    printf("level_1_test\n");
     lsmtree *lsm = create(10);
     // put 10 nodes in the buffer - triggers a move to disk (level 1)
     for (int i = 0; i < 10; i++)
@@ -80,6 +82,8 @@ void level_1_test()
 
 void level_2_test()
 {
+    printf("level_2_test\n");
+
     lsmtree *lsm = create(10);
     // put 10 nodes in the buffer - triggers a move to disk (level 1)
     int max_int = 209;
@@ -107,6 +111,7 @@ void level_2_test()
 
 void level_3_test()
 {
+    printf("level_3_test\n");
     lsmtree *lsm = create(10);
     // put 10 nodes in the buffer - triggers a move to disk (level 1)
     int max_int = 509;
@@ -128,6 +133,7 @@ void level_3_test()
 
 void sort_test()
 {
+    printf("sort_test\n");
     lsmtree *lsm = create(10);
 
     // create an array of 500 random numbers
@@ -172,6 +178,7 @@ void sort_test()
 
 void fence_pointers_correct()
 {
+    printf("fence_pointers_correct\n");
     lsmtree *lsm = create(BLOCK_SIZE_NODES);
     int max_int = BLOCK_SIZE_NODES * 2;
     int offset = 11;
@@ -187,7 +194,8 @@ void fence_pointers_correct()
         int getR = get(lsm, i);
         assert(getR == 2 * i);
     }
-
+    // since were testing internals of level 1, we need to wait for the thread to finish to reason
+    sleep(1);
     // ensure that the fence pointers are correct
     assert(lsm->levels[1].fence_pointers[0].key == 0 + offset);
     assert(lsm->levels[1].fence_pointers[1].key == 512 + offset);
@@ -197,6 +205,7 @@ void fence_pointers_correct()
 
 void large_buffer_size_complex()
 {
+    printf("large_buffer_size_complex");
     lsmtree *lsm = create(BLOCK_SIZE_NODES);
     int max_int = BLOCK_SIZE_NODES * 214.1234;
     int random_array[max_int];
@@ -239,6 +248,7 @@ void large_buffer_size_complex()
 
 void compact_test()
 {
+    printf("compact_test\n");
     node buffer[10] = {
         {1, 2},
         {2, 4},
@@ -262,6 +272,7 @@ void compact_test()
 
 void dedup_test()
 {
+    printf("dedup_test\n");
     lsmtree *lsm = create(10);
     // insert 400 nodes with the same key and increasing values
     for (int i = 0; i < 400; i++)
