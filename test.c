@@ -241,10 +241,10 @@ void compact_test()
     node buffer[10] = {
         {1, 2},
         {2, 4},
-        {3, 6},
+        {3, 0},
         {4, 8},
         {3, 9},
-        {6, 12},
+        {6, 27},
         {7, 14},
         {8, 16},
         {6, 11},
@@ -263,12 +263,12 @@ void dedup_test()
 {
     lsmtree *lsm = create(10);
     // insert 400 nodes with the same key and increasing values
-    for (int i = 0; i < 400; i++)
+    for (int i = 0; i < 20; i++)
     {
         insert(lsm, 1, i);
     }
     // ensure that the value is the last value inserted
-    int getR =  get(lsm,1);
+    int getR = get(lsm, 1);
     printf(" now %d\n", getR);
     assert(getR == 399);
     destroy(lsm);
@@ -276,15 +276,14 @@ void dedup_test()
 
 int main(void)
 {
-
-    // basic_buffer_test();
-    // level_1_test();
-    // level_2_test();
-    // level_3_test();
-    // sort_test();
-    // fence_pointers_correct();
-    // large_buffer_size_complex();
-    // compact_test();
+    basic_buffer_test();
+    level_1_test();
+    level_2_test();
+    level_3_test();
+    sort_test();
+    fence_pointers_correct();
+    large_buffer_size_complex();
+    compact_test();
     dedup_test();
 
     return 0;
