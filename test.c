@@ -13,12 +13,12 @@ void basic_buffer_test()
 {
     // basic create functionality
     lsmtree *lsm = create(10);
-    assert(lsm->memtable_level.size == 10);
-    assert(lsm->memtable_level.count == 0);
+    assert(lsm->memtable_level->size == 10);
+    assert(lsm->memtable_level->count == 0);
 
     // first write functionality
     insert(lsm, 5, 10);
-    int buffer_count = lsm->memtable_level.count;
+    int buffer_count = lsm->memtable_level->count;
     assert(buffer_count == 1);
     node new_node = lsm->memtable[buffer_count - 1];
     assert(new_node.key == 5);
@@ -26,7 +26,7 @@ void basic_buffer_test()
 
     // second write functionality
     insert(lsm, 12, 13);
-    buffer_count = lsm->memtable_level.count;
+    buffer_count = lsm->memtable_level->count;
     assert(buffer_count == 2);
     new_node = lsm->memtable[buffer_count - 1];
     assert(new_node.key == 12);
@@ -58,7 +58,7 @@ void level_1_test()
     // about the internal state of the system
     // GETS should be available immediately
     sleep(1);
-    assert(lsm->memtable_level.count == 0);
+    assert(lsm->memtable_level->count == 0);
     assert(lsm->levels[0].count == 0);
     assert(lsm->levels[1].count == 10);
 
@@ -97,7 +97,7 @@ void level_2_test()
     // since were testing the internal state of the system, need to wait for it to settle
     sleep(1);
 
-    assert(lsm->memtable_level.count == 9);
+    assert(lsm->memtable_level->count == 9);
     assert(lsm->levels[1].count == 0);
     assert(lsm->levels[2].count == 200);
 
@@ -263,13 +263,12 @@ void dedup_test()
 {
     lsmtree *lsm = create(10);
     // insert 400 nodes with the same key and increasing values
-    for (int i = 0; i < 20; i++)
+    for (int i = 0; i < 400; i++)
     {
         insert(lsm, 1, i);
     }
     // ensure that the value is the last value inserted
     int getR = get(lsm, 1);
-    printf(" now %d\n", getR);
     assert(getR == 399);
     destroy(lsm);
 }
