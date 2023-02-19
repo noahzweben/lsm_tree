@@ -85,13 +85,20 @@ void copy_tree(lsmtree *new_lsm, lsmtree *src_lsm)
     // copy levels
     for (int i = 0; i <= src_lsm->max_level; i++)
     {
-        // free fence pointers and files before theyre copied over
+        // free fence pointers before they're copied over
         if (new_lsm->max_level >= i && new_lsm->levels[i].fence_pointer_count > 0)
         {
-            // remove(new_lsm->levels[i].filepath);
             free(new_lsm->levels[i].fence_pointers);
         }
-        // copy levels
+
+        // check if destination has a filepath and is different from src filepath,  remove it
+        if (new_lsm->levels[i].filepath[0] != '\0' && strcmp(new_lsm->levels[i].filepath, src_lsm->levels[i].filepath) != 0)
+        {
+            printf("destroying file %s\n", new_lsm->levels[i].filepath);
+            remove(new_lsm->levels[i].filepath);
+            new_lsm->levels[i].filepath[0] = '\0';
+        }
+        // copy level
         memcpy(&new_lsm->levels[i], &src_lsm->levels[i], sizeof(level));
         // copy fence pointers if i>= 1 and the source has (otherwise creating a pointer of size 0 that doesnt get cleaned up)
         if (i >= 1 && src_lsm->levels[i].fence_pointer_count)
@@ -194,16 +201,21 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
         }
     }
 
-    // printf("merging level %d - current path %s\n", deeper_level, current_path);
-    // print_tree("here",lsm);
-    FILE *fp_current_layer = fopen(current_path, "rb");
-    if (fp_current_layer == NULL)
+    // check if current_path is empty (first time at this level)
+    FILE *fp_current_layer = NULL;
+    if (current_path[0] != '\0')
     {
-        printf("Error2: fopen failed in flush_to_level\n");
-        exit(1);
+
+        fp_current_layer = fopen(current_path, "rb");
+        if (fp_current_layer == NULL)
+        {
+            printf("Error2: fopen failed in flush_to_level\n");
+            exit(1);
+        }
     }
     char new_path[64];
     set_filename(new_path);
+    printf("fp_temp create %s\n", new_path);
     FILE *fp_temp = fopen(new_path, "wb");
 
     // create buffer that can accomodate both levels
@@ -216,8 +228,11 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
         exit(1);
     }
 
-    // read deeper layer into buffer
-    fread(buffer, sizeof(node), lsm->levels[deeper_level].count, fp_current_layer);
+    // read deeper layer into buffer if it exists
+    if (fp_current_layer != NULL)
+    {
+        fread(buffer, sizeof(node), lsm->levels[deeper_level].count, fp_current_layer);
+    }
 
     // read fresher level into buffer
     if (fresh_level == 0)
@@ -245,12 +260,9 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
         char new_old_path[64];
         set_filename(new_old_path);
         // touch new old level file
-        FILE *fp_new_old = fopen(new_old_path, "w");
+        printf("fp_new_old create %s\n", new_old_path);
+        FILE *fp_new_old = fopen(new_old_path, "wb");
         fclose(fp_new_old);
-
-        // TODO clean up in copy tree
-        // remove(old_path);
-        // close files
         fclose(fp_old_flush);
         strcpy(lsm->levels[fresh_level].filepath, new_old_path);
     }
@@ -270,8 +282,6 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
     // update old level count
     lsm->levels[fresh_level]
         .count = 0;
-    // TODO clean up in copy treee
-    // remove(current_path);
     fclose(fp_current_layer);
     fclose(fp_temp);
     // free buffer
@@ -300,21 +310,21 @@ void init_level(lsmtree *lsm, int deeper_level)
         }
 
         reset_level(&(lsm->levels[deeper_level]), deeper_level, lsm->levels[deeper_level - 1].size * 10);
-        set_filename(lsm->levels[deeper_level].filepath);
-        FILE *fp = fopen(lsm->levels[deeper_level].filepath, "wb");
-        if (fp == NULL)
-        {
-            printf("Error: fopen failed init_layer\n");
-            exit(1);
-        }
-        fclose(fp);
+        // set_filename(lsm->levels[deeper_level].filepath);
+        // printf("fp_level %d, init create %s\n", deeper_level, lsm->levels[deeper_level].filepath);
+        // FILE *fp = fopen(lsm->levels[deeper_level].filepath, "wb");
+        // if (fp == NULL)
+        // {
+        //     printf("Error: fopen failed init_layer\n");
+        //     exit(1);
+        // }
+        // fclose(fp);
     }
 }
 
 // get a value
 int get(lsmtree *lsm, keyType key)
 {
-    print_tree("baby", lsm);
     //  acquire read mutex
     pthread_mutex_lock(&read_mutex);
     // MOST RECENT: search memtable for key starting form back

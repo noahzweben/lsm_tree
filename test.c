@@ -77,6 +77,7 @@ void level_1_test()
     }
     fclose(fp);
     free(nodes);
+    print_tree("l1_test", lsm);
     destroy(lsm, 0);
 }
 
@@ -288,7 +289,7 @@ void dedup_test()
 
 int main(void)
 {
-    // basic_buffer_test();
+    basic_buffer_test();
     // level_1_test();
     level_2_test();
     // level_3_test();
