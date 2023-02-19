@@ -32,7 +32,6 @@ typedef struct lsmtree
 {
     node *memtable;
     level *memtable_level;
-
     int max_level;
     node *flush_buffer;
     level *levels;
@@ -40,8 +39,7 @@ typedef struct lsmtree
 } lsmtree;
 
 lsmtree *create(int buffer_size);
-void init_memtable(lsmtree *lsm, int buffer_size);
-void destroy(lsmtree *lsm);
+void destroy(lsmtree *lsm, int keep_files);
 void insert(lsmtree *lsm, keyType key, valType value);
 void reset_level(level *level, int level_num, int level_size);
 void flush_to_level(lsmtree *lsm, int level);
@@ -50,6 +48,7 @@ int get_from_disk(lsmtree *lsm, keyType key, int level);
 void init_level(lsmtree *lsm, int level);
 void compact(node *buffer, int *buffer_size);
 void build_fence_pointers(level *level, node *buffer, int buffer_size);
+void copy_tree(lsmtree *new_lsm, lsmtree *src_lsm);
 
 // threaded
 void *init_flush_thread(void *arg);

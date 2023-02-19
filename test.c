@@ -40,7 +40,7 @@ void basic_buffer_test()
     // newer write should be returned from buffer
     insert(lsm, 5, 11);
     assert(get(lsm, 5) == 11);
-    destroy(lsm);
+    destroy(lsm, 0);
 }
 
 void level_1_test()
@@ -51,7 +51,8 @@ void level_1_test()
     {
         insert(lsm, i, 2 * i);
     }
-    assert(get(lsm, 7) == 14);
+    int getR = get(lsm, 7);
+    assert(getR == 14);
     assert(get(lsm, 2) == 4);
     assert(get(lsm, 12) == -1);
     // since were testing level 1, we need to wait for the thread to finish to reason
@@ -74,7 +75,7 @@ void level_1_test()
     }
     fclose(fp);
     free(nodes);
-    destroy(lsm);
+    destroy(lsm, 0);
 }
 
 void level_2_test()
@@ -101,7 +102,7 @@ void level_2_test()
     assert(lsm->levels[1].count == 0);
     assert(lsm->levels[2].count == 200);
 
-    destroy(lsm);
+    destroy(lsm, 0);
 }
 
 void level_3_test()
@@ -122,7 +123,7 @@ void level_3_test()
         assert(getR == 2 * i);
     }
     assert(get(lsm, 511) == -1);
-    destroy(lsm);
+    destroy(lsm, 0);
 }
 
 void sort_test()
@@ -166,7 +167,7 @@ void sort_test()
         assert(get(lsm, random_array[i]) == 2 * random_array[i]);
     }
 
-    destroy(lsm);
+    destroy(lsm, 0);
 }
 
 void fence_pointers_correct()
@@ -191,7 +192,7 @@ void fence_pointers_correct()
     assert(lsm->levels[1].fence_pointers[0].key == 0 + offset);
     assert(lsm->levels[1].fence_pointers[1].key == 512 + offset);
 
-    destroy(lsm);
+    destroy(lsm, 0);
 }
 
 void large_buffer_size_complex()
@@ -233,7 +234,7 @@ void large_buffer_size_complex()
         free(nodes);
     }
 
-    destroy(lsm);
+    destroy(lsm, 0);
 }
 
 void compact_test()
@@ -270,7 +271,7 @@ void dedup_test()
     // ensure that the value is the last value inserted
     int getR = get(lsm, 1);
     assert(getR == 399);
-    destroy(lsm);
+    destroy(lsm, 0);
 }
 
 int main(void)

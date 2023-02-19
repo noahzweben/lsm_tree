@@ -13,7 +13,6 @@ pthread_mutex_t merge_mutex = PTHREAD_MUTEX_INITIALIZER;
 struct flush_args
 {
     lsmtree *lsm;
-    int level;
 };
 
 // return a pointer to a new LSM tree
@@ -70,6 +69,34 @@ void reset_level(level *level, int level_num, int buffer_size)
     level->fence_pointer_count = 0;
 }
 
+// make a shadow tree we perform the merge on
+void copy_tree(lsmtree *new_lsm, lsmtree *src_lsm)
+{
+    // reallocate levels in new lsm
+    new_lsm->levels = (level *)realloc(new_lsm->levels, sizeof(level) * (src_lsm->max_level + 1));
+    if (new_lsm->levels == NULL)
+    {
+        printf("Error6: malloc failed in create\n");
+        exit(1);
+    }
+
+    // copy levels
+    for (int i = 0; i < src_lsm->max_level + 1; i++)
+    {
+        // copy levels
+        memcpy(&new_lsm->levels[i], &src_lsm->levels[i], sizeof(level));
+        // copy fence pointers
+        new_lsm->levels[i].fence_pointers = (fence_pointer *)malloc(sizeof(fence_pointer) * new_lsm->levels[i].fence_pointer_count);
+        memcpy(new_lsm->levels[i].fence_pointers, src_lsm->levels[i].fence_pointers, sizeof(fence_pointer) * new_lsm->levels[i].fence_pointer_count);
+        // copy filepath
+        strcpy(new_lsm->levels[i].filepath, src_lsm->levels[i].filepath);
+    }
+    // copy flush_buffer
+    memcpy(new_lsm->flush_buffer, src_lsm->flush_buffer, src_lsm->memtable_level->size * sizeof(node));
+
+    new_lsm->max_level = src_lsm->max_level;
+}
+
 // insert a key-value pair into the LSM tree
 void insert(lsmtree *lsm, keyType key, valType value)
 {
@@ -95,14 +122,14 @@ void insert(lsmtree *lsm, keyType key, valType value)
         // copy memtable to flush buffer and copy level metadata to level[0]
         memcpy(lsm->flush_buffer, lsm->memtable, lsm->memtable_level->size * sizeof(node));
         memcpy(&lsm->levels[0], lsm->memtable_level, sizeof(level));
-
         // accept writes to memtable again
         reset_level(lsm->memtable_level, lsm->memtable_level->level, lsm->memtable_level->size);
+
         // call flush_to_level in a nonblocking thread
         pthread_t thread;
         struct flush_args *args = (struct flush_args *)malloc(sizeof(struct flush_args));
+
         args->lsm = lsm;
-        args->level = 1;
         pthread_create(&thread, NULL, init_flush_thread, (void *)args);
         // pthread_detach(thread);
         pthread_join(thread, NULL);
@@ -112,7 +139,17 @@ void insert(lsmtree *lsm, keyType key, valType value)
 void *init_flush_thread(void *args)
 {
     struct flush_args *flush_args = (struct flush_args *)args;
-    flush_to_level(flush_args->lsm, flush_args->level);
+    lsmtree *merge_lsm = create(flush_args->lsm->memtable_level->size);
+    copy_tree(merge_lsm, flush_args->lsm);
+    // merge
+    flush_to_level(merge_lsm, 1);
+
+    // copy merge_lsm to lsm
+    copy_tree(flush_args->lsm, merge_lsm);
+
+    // free merge_lsm
+    int keep_files = 1;
+    destroy(merge_lsm, keep_files);
     free(flush_args);
     // relesae merge mutex
     pthread_mutex_unlock(&merge_mutex);
@@ -393,14 +430,17 @@ void compact(node *buffer, int *buffer_size)
     *buffer_size = i + 1;
 }
 
-void destroy(lsmtree *lsm)
+void destroy(lsmtree *lsm, int keep_files)
 {
 
     // loop through levels and remove filepath
     for (int i = 1; i <= lsm->max_level; i++)
     {
+        if (keep_files == 0)
+        {
+            remove(lsm->levels[i].filepath);
+        }
 
-        remove(lsm->levels[i].filepath);
         if (lsm->levels[i].fence_pointer_count > 0)
         {
             free(lsm->levels[i].fence_pointers);
@@ -416,7 +456,15 @@ void destroy(lsmtree *lsm)
 void print_tree(char *msg, lsmtree *lsm)
 {
     printf("%s\n", msg);
+    // loop through memtalbe and print
+    printf("Memtable: ");
+    for (int i = 0; i < lsm->memtable_level->count; i++)
+    {
+        printf("{%d,%d}, ", lsm->memtable[i].key, lsm->memtable[i].value);
+    }
+
     // loop through buffer and print
+    printf("Flush Buffer: ");
     for (int i = 0; i < lsm->levels[0].count; i++)
     {
         printf("{%d,%d}, ", lsm->flush_buffer[i].key, lsm->flush_buffer[i].value);
@@ -426,7 +474,7 @@ void print_tree(char *msg, lsmtree *lsm)
     {
         printf("\nLevel %d: %d/%d, fp: %s\n", lsm->levels[i].level, lsm->levels[i].count, lsm->levels[i].size, lsm->levels[i].filepath);
         // print fence pointers
-        if (i > 1)
+        if (i > 0)
         {
             for (int j = 0; j < lsm->levels[i].fence_pointer_count; j++)
             {
