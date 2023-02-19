@@ -61,20 +61,20 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
 {
 
     init_level(lsm, deeper_level);
-    int old_level = deeper_level - 1;
+    int fresh_level = deeper_level - 1;
 
     // get filepaths
     char current_path[64];
     strcpy(current_path, lsm->levels[deeper_level].filepath);
     char old_path[64];
-    strcpy(old_path, lsm->levels[old_level].filepath);
+    strcpy(old_path, lsm->levels[fresh_level].filepath);
 
     FILE *fp_old_flush;
 
-    // no file to open if old_level is 0
-    if (old_level != 0)
+    // no file to open if fresh_level is 0
+    if (fresh_level != 0)
     {
-        fp_old_flush = fopen(lsm->levels[old_level].filepath, "rb");
+        fp_old_flush = fopen(lsm->levels[fresh_level].filepath, "rb");
         if (fp_old_flush == NULL)
         {
             printf("Error1: fopen failed in flush_to_level\n");
@@ -93,7 +93,7 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
     FILE *fp_temp = fopen(new_path, "wb");
 
     // create buffer that can accomodate both levels
-    int buffer_size = lsm->levels[old_level].count + lsm->levels[deeper_level].count;
+    int buffer_size = lsm->levels[fresh_level].count + lsm->levels[deeper_level].count;
     node *buffer = (node *)malloc(sizeof(node) * buffer_size);
 
     if (buffer == NULL)
@@ -101,18 +101,21 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
         printf("Error3: malloc failed in flush_to_level\n");
         exit(1);
     }
-    // read old level into buffer
-    if (old_level == 0)
+
+    // read deeper layer into buffer
+    fread(buffer, sizeof(node), lsm->levels[deeper_level].count, fp_current_layer);
+
+    // read fresher level into buffer
+    if (fresh_level == 0)
     {
         // read lsm->buffer into buffer
-        memcpy(buffer, lsm->buffer, sizeof(node) * lsm->levels[old_level].count);
+        memcpy(buffer + lsm->levels[deeper_level].count, lsm->buffer, sizeof(node) * lsm->levels[fresh_level].count);
     }
     else
     {
-        fread(buffer, sizeof(node), lsm->levels[old_level].count, fp_old_flush);
+        fread(buffer + lsm->levels[deeper_level].count, sizeof(node), lsm->levels[fresh_level].count, fp_old_flush);
     }
-    // read current layer into buffer after old level
-    fread(buffer + lsm->levels[old_level].count, sizeof(node), lsm->levels[deeper_level].count, fp_current_layer);
+
     // returns sorted and compacted buffer and updated buffer size
     compact(buffer, &buffer_size);
 
@@ -123,7 +126,7 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
     lsm->levels[deeper_level]
         .count = buffer_size;
 
-    if (old_level != 0)
+    if (fresh_level != 0)
     {
         char new_old_path[64];
         set_filename(new_old_path);
@@ -133,7 +136,7 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
         remove(old_path);
         // close files
         fclose(fp_old_flush);
-        strcpy(lsm->levels[old_level].filepath, new_old_path);
+        strcpy(lsm->levels[fresh_level].filepath, new_old_path);
     }
 
     // update filepaths
@@ -141,14 +144,14 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
 
     // build and remove old fence pointers
     build_fence_pointers(&(lsm->levels[deeper_level]), buffer, buffer_size);
-    if (lsm->levels[old_level].fence_pointer_count > 0)
+    if (lsm->levels[fresh_level].fence_pointer_count > 0)
     {
-        free(lsm->levels[old_level].fence_pointers);
+        free(lsm->levels[fresh_level].fence_pointers);
     }
 
-    lsm->levels[old_level].fence_pointer_count = 0;
+    lsm->levels[fresh_level].fence_pointer_count = 0;
     // update old level count
-    lsm->levels[old_level]
+    lsm->levels[fresh_level]
         .count = 0;
     remove(current_path);
     fclose(fp_current_layer);
