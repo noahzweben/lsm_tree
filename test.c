@@ -57,7 +57,7 @@ void level_1_test()
     // since were testing level 1, we need to wait for the thread to finish to reason
     // about the internal state of the system
     // GETS should be available immediately
-    sleep(2);
+    sleep(1);
     assert(lsm->memtable_level.count == 0);
     assert(lsm->levels[0].count == 0);
     assert(lsm->levels[1].count == 10);
@@ -90,13 +90,12 @@ void level_2_test()
     for (int i = 0; i < max_int; i++)
     {
         int getR = get(lsm, i);
-        printf("key %d: %d\n", i, getR);
         assert(getR == 2 * i);
     }
     assert(get(lsm, 210) == -1);
 
     // since were testing the internal state of the system, need to wait for it to settle
-    sleep(2);
+    sleep(1);
 
     assert(lsm->memtable_level.count == 9);
     assert(lsm->levels[1].count == 0);
@@ -120,7 +119,6 @@ void level_3_test()
     {
         // printf("key %d: %d\n", i, get(lsm, i));
         int getR = get(lsm, i);
-        printf("key %d: %d\n", i, getR);
         assert(getR == 2 * i);
     }
     assert(get(lsm, 511) == -1);
@@ -270,14 +268,16 @@ void dedup_test()
         insert(lsm, 1, i);
     }
     // ensure that the value is the last value inserted
-    assert(get(lsm, 1) == 399);
+    int getR =  get(lsm,1);
+    printf(" now %d\n", getR);
+    assert(getR == 399);
     destroy(lsm);
 }
 
 int main(void)
 {
 
-    basic_buffer_test();
+    // basic_buffer_test();
     // level_1_test();
     // level_2_test();
     // level_3_test();
@@ -285,7 +285,7 @@ int main(void)
     // fence_pointers_correct();
     // large_buffer_size_complex();
     // compact_test();
-    // dedup_test();
+    dedup_test();
 
     return 0;
 }

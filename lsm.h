@@ -1,5 +1,3 @@
-#include <pthread.h>
-
 #ifndef CS265_LSM // This is a header guard. It prevents the header from being included more than once.
 #define CS265_LSM
 
@@ -26,8 +24,6 @@ typedef struct level
     int size;
     char filepath[64];
     int fence_pointer_count;
-    // mutex
-    pthread_mutex_t level_mutex;
     fence_pointer *fence_pointers;
 
 } level;
