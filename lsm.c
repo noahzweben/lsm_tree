@@ -79,17 +79,25 @@ void copy_tree(lsmtree *new_lsm, lsmtree *src_lsm)
         printf("Error6: malloc failed in create\n");
         exit(1);
     }
-
+    
     // copy levels
-    for (int i = 0; i < src_lsm->max_level + 1; i++)
+    for (int i = 0; i <= src_lsm->max_level; i++)
     {
+        // free fence pointers before theyre copied over
+        if (new_lsm->max_level >= i && new_lsm->levels[i].fence_pointer_count > 0){
+            free(new_lsm->levels[i].fence_pointers);
+        }
         // copy levels
         memcpy(&new_lsm->levels[i], &src_lsm->levels[i], sizeof(level));
-        // copy fence pointers
-        new_lsm->levels[i].fence_pointers = (fence_pointer *)malloc(sizeof(fence_pointer) * new_lsm->levels[i].fence_pointer_count);
-        memcpy(new_lsm->levels[i].fence_pointers, src_lsm->levels[i].fence_pointers, sizeof(fence_pointer) * new_lsm->levels[i].fence_pointer_count);
+        // copy fence pointers if i>= 1 and the source has (otherwise creating a pointer of size 0 that doesnt get cleaned up)
+        if (i >= 1 &&  src_lsm->levels[i].fence_pointer_count){
+            new_lsm->levels[i].fence_pointers = (fence_pointer *)malloc(sizeof(fence_pointer) * src_lsm->levels[i].fence_pointer_count);
+            memcpy(new_lsm->levels[i].fence_pointers, src_lsm->levels[i].fence_pointers, sizeof(fence_pointer) * src_lsm->levels[i].fence_pointer_count);
+        }
+       
         // copy filepath
-        strcpy(new_lsm->levels[i].filepath, src_lsm->levels[i].filepath);
+        // strcpy(new_lsm->levels[i].filepath, src_lsm->levels[i].filepath);
+        // free(temp);
     }
     // copy flush_buffer
     memcpy(new_lsm->flush_buffer, src_lsm->flush_buffer, src_lsm->memtable_level->size * sizeof(node));
@@ -140,11 +148,16 @@ void *init_flush_thread(void *args)
 {
     struct flush_args *flush_args = (struct flush_args *)args;
     lsmtree *merge_lsm = create(flush_args->lsm->memtable_level->size);
+    // print_tree("First Flush", flush_args->lsm);
+    // print_tree("First Merge", merge_lsm);
+
     copy_tree(merge_lsm, flush_args->lsm);
     // merge
     flush_to_level(merge_lsm, 1);
 
-    // copy merge_lsm to lsm
+    // copy merge_lsm back to lsm
+    // print_tree("Second Flush", flush_args->lsm);
+    // print_tree("Second Merge", merge_lsm);
     copy_tree(flush_args->lsm, merge_lsm);
 
     // free merge_lsm
@@ -248,6 +261,7 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
     if (lsm->levels[fresh_level].fence_pointer_count > 0)
     {
         free(lsm->levels[fresh_level].fence_pointers);
+        lsm->levels[fresh_level].fence_pointers = NULL;
     }
 
     lsm->levels[fresh_level].fence_pointer_count = 0;
@@ -448,6 +462,7 @@ void destroy(lsmtree *lsm, int keep_files)
     }
 
     free(lsm->levels);
+    free(lsm->memtable_level);
     free(lsm->flush_buffer);
     free(lsm->memtable);
     free(lsm);
@@ -493,7 +508,7 @@ void build_fence_pointers(level *level, node *buffer, int buffer_size)
 
     // allocate a fence pointer for every BLOCK_SIZE_NODEs nodes
     int fence_pointer_count = buffer_size / BLOCK_SIZE_NODES + (buffer_size % BLOCK_SIZE_NODES != 0);
-
+    // free old
     fence_pointer *new_fence_pointers = (fence_pointer *)malloc(sizeof(fence_pointer) * fence_pointer_count);
     // loop through blocks of nodes and set fence pointers
     for (int i = 0; i < fence_pointer_count; i++)
