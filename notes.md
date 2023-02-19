@@ -12,3 +12,5 @@ Q: do merging in background process, what if it takes long enough that buffer fi
 * range queries
 * delete
 * uint vs int
+
+* only allow one merge operation at a given time mutex

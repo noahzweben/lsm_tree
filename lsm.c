@@ -7,6 +7,8 @@
 #include <pthread.h>
 
 int BLOCK_SIZE_NODES = 4096 / sizeof(node);
+// flush mutex
+pthread_mutex_t flush_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 struct flush_args
 {
@@ -32,29 +34,34 @@ lsmtree *create(int buffer_size)
         printf("Error: malloc failed in create\n");
         exit(1);
     }
-    // initialize filepath to empty string
-    lsm->levels[0].filepath[0] = '\0';
-    lsm->levels[0].level = 0;
-    lsm->levels[0].count = 0;
-    lsm->levels[0].size = buffer_size;
-    lsm->levels[0].fence_pointers = NULL;
-    lsm->levels[0].fence_pointer_count = 0;
+    init_memtable(lsm, buffer_size);
+    return lsm;
+}
 
-    // create buffer
-    lsm->buffer = (node *)malloc(sizeof(node) * buffer_size);
-    if (lsm->buffer == NULL)
+void init_memtable(lsmtree *lsm, int buffer_size)
+{
+    // initialize filepath to empty string
+    lsm->memtable_level.filepath[0] = '\0';
+    lsm->memtable_level.level = 0;
+    lsm->memtable_level.count = 0;
+    lsm->memtable_level.size = buffer_size;
+    lsm->memtable_level.fence_pointers = NULL;
+    lsm->memtable_level.fence_pointer_count = 0;
+
+    // create memtable buffer
+    lsm->memtable = (node *)malloc(sizeof(node) * buffer_size);
+    if (lsm->flush_buffer == NULL)
     {
         printf("Error: malloc failed in create\n");
         exit(1);
     }
-    return lsm;
 }
 
 // insert a key-value pair into the LSM tree
 void insert(lsmtree *lsm, keyType key, valType value)
 {
     // if buffer is full return an error
-    if (lsm->levels[0].count == lsm->levels[0].size)
+    if (lsm->memtable_level.count == lsm->memtable_level.size)
     {
         printf("Error: buffer is full\n");
         exit(1);
@@ -62,27 +69,41 @@ void insert(lsmtree *lsm, keyType key, valType value)
 
     // create new node on the stack
     node n = {key, value};
-    lsm->buffer[(lsm->levels[0].count)++] = n;
+    lsm->memtable[(lsm->memtable_level.count)++] = n;
 
     // if buffer is full, move to disk
-    if (lsm->levels[0].count == lsm->levels[0].size)
+    if (lsm->memtable_level.count == lsm->memtable_level.size)
     {
+        // claim mutex
+        pthread_mutex_lock(&flush_mutex);
+        // copy memtable to flush buffer and copy level metadata to level[0]
+        lsm->flush_buffer = lsm->memtable;
+        lsm->levels[0] = lsm->memtable_level;
+        init_memtable(lsm, lsm->memtable_level.size);
+
         // call flush_to_level in a nonblocking thread
         pthread_t thread;
         struct flush_args *args = (struct flush_args *)malloc(sizeof(struct flush_args));
         args->lsm = lsm;
         args->level = 1;
-        pthread_create(&thread, NULL, flush_to_level, (void *)args);
+        pthread_create(&thread, NULL, init_flush_thread, (void *)args);
         pthread_detach(thread);
     }
 }
 
-void *flush_to_level(void *args)
+void *init_flush_thread(void *args)
+{
+    struct flush_args *flush_args = (struct flush_args *)args;
+    flush_to_level(flush_args->lsm, flush_args->level);
+    free(flush_args);
+    // release mutex
+    pthread_mutex_unlock(&flush_mutex);
+    return NULL;
+}
+
+void flush_to_level(lsmtree *lsm, int deeper_level)
 {
 
-    lsmtree *lsm = ((struct flush_args *)args)->lsm;
-    int deeper_level = ((struct flush_args *)args)->level;
-    free(args);
     init_level(lsm, deeper_level);
     int old_level = deeper_level - 1;
 
@@ -127,8 +148,8 @@ void *flush_to_level(void *args)
     // read old level into buffer
     if (old_level == 0)
     {
-        // read lsm->buffer into buffer
-        memcpy(buffer, lsm->buffer, sizeof(node) * lsm->levels[old_level].count);
+        // read lsm->flush_buffer into buffer
+        memcpy(buffer, lsm->flush_buffer, sizeof(node) * lsm->levels[old_level].count);
     }
     else
     {
@@ -182,13 +203,8 @@ void *flush_to_level(void *args)
     // check if new level is full
     if (lsm->levels[deeper_level].count == lsm->levels[deeper_level].size)
     {
-        // build new flush args
-        struct flush_args *args = (struct flush_args *)malloc(sizeof(struct flush_args));
-        args->lsm = lsm;
-        args->level = deeper_level + 1;
-        (*flush_to_level)((void *)args);
+        flush_to_level(lsm, deeper_level + 1);
     }
-    return NULL;
 }
 
 void init_level(lsmtree *lsm, int deeper_level)
@@ -229,9 +245,9 @@ int get(lsmtree *lsm, keyType key)
     // search buffer for key starting from back (more recent)
     for (int i = lsm->levels[0].count - 1; i >= 0; i--)
     {
-        if (lsm->buffer[i].key == key)
+        if (lsm->flush_buffer[i].key == key)
         {
-            return lsm->buffer[i].value;
+            return lsm->flush_buffer[i].value;
         }
     }
 
@@ -364,7 +380,7 @@ void destroy(lsmtree *lsm)
     }
 
     free(lsm->levels);
-    free(lsm->buffer);
+    free(lsm->flush_buffer);
     free(lsm);
 }
 
@@ -374,7 +390,7 @@ void print_tree(char *msg, lsmtree *lsm)
     // loop through buffer and print
     for (int i = 0; i < lsm->levels[0].count; i++)
     {
-        printf("{%d,%d}, ", lsm->buffer[i].key, lsm->buffer[i].value);
+        printf("{%d,%d}, ", lsm->flush_buffer[i].key, lsm->flush_buffer[i].value);
     }
     // loop through levels and print level struct
     for (int i = 0; i <= lsm->max_level; i++)

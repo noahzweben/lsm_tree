@@ -8,7 +8,6 @@
 #include "helpers.h"
 #include <unistd.h>
 
-
 void basic_buffer_test()
 {
     // basic create functionality
@@ -20,7 +19,7 @@ void basic_buffer_test()
     insert(lsm, 5, 10);
     int buffer_count = lsm->levels[0].count;
     assert(buffer_count == 1);
-    node new_node = lsm->buffer[buffer_count - 1];
+    node new_node = lsm->flush_buffer[buffer_count - 1];
     assert(new_node.key == 5);
     assert(new_node.value == 10);
 
@@ -28,7 +27,7 @@ void basic_buffer_test()
     insert(lsm, 12, 13);
     buffer_count = lsm->levels[0].count;
     assert(buffer_count == 2);
-    new_node = lsm->buffer[buffer_count - 1];
+    new_node = lsm->flush_buffer[buffer_count - 1];
     assert(new_node.key == 12);
     assert(new_node.value == 13);
 
