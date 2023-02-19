@@ -8,8 +8,8 @@
 
 int BLOCK_SIZE_NODES = 4096 / sizeof(node);
 
-
-struct flush_args {
+struct flush_args
+{
     lsmtree *lsm;
     int level;
 };
@@ -70,10 +70,10 @@ void insert(lsmtree *lsm, keyType key, valType value)
         // call flush_to_level in a nonblocking thread
         printf("im here mom\n");
         pthread_t thread;
-        int *flush_level = (int *)malloc(sizeof(int));
-        *flush_level = 1;
-        void *args[] = {&lsm, &flush_level};
-        pthread_create(&thread, NULL, flush_to_level, args);
+        struct flush_args *args = (struct flush_args *)malloc(sizeof(struct flush_args));
+        args->lsm = lsm;
+        args->level = 1;
+        pthread_create(&thread, NULL, flush_to_level, (void *)args);
         pthread_detach(thread);
     }
 }
@@ -81,12 +81,11 @@ void insert(lsmtree *lsm, keyType key, valType value)
 void *flush_to_level(void *args)
 {
 
-    lsmtree *lsm = ((lsmtree **)args)[0];
-    printf("sup\n");
-    int deeper_level = args[1];
+    lsmtree *lsm = ((struct flush_args *)args)->lsm;
+    int deeper_level = ((struct flush_args *)args)->level;
+    free(args);
     printf("burp\n");
     printf("in here trying to flush to level %d\n", deeper_level);
-
 
     init_level(lsm, deeper_level);
     int old_level = deeper_level - 1;
@@ -187,15 +186,12 @@ void *flush_to_level(void *args)
     // check if new level is full
     if (lsm->levels[deeper_level].count == lsm->levels[deeper_level].size)
     {
-        int *new_deeper_level = (int *)malloc(sizeof(int));
-        *new_deeper_level = deeper_level + 1;
-        void *args[] = {&lsm, &new_deeper_level};
-        (*flush_to_level)(args);
+        // build new flush args
+        struct flush_args *args = (struct flush_args *)malloc(sizeof(struct flush_args));
+        args->lsm = lsm;
+        args->level = deeper_level + 1;
+        (*flush_to_level)((void *)args);
     }
-
-    // free the deeper level args
-    free(((int **)args)[1]);
-
     return NULL;
 }
 
