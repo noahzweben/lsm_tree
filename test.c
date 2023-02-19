@@ -208,7 +208,7 @@ void fence_pointers_correct()
 
 void large_buffer_size_complex()
 {
-    printf("large_buffer_size_complex");
+    printf("large_buffer_size_complex\n");
     lsmtree *lsm = create(BLOCK_SIZE_NODES);
     int max_int = BLOCK_SIZE_NODES * 214.1234;
     int random_array[max_int];

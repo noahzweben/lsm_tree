@@ -100,7 +100,7 @@ void copy_tree(lsmtree *new_lsm, lsmtree *src_lsm)
         // check if destination has a filepath and is different from src filepath,  remove it
         if (new_lsm->levels[i].filepath[0] != '\0' && strcmp(new_lsm->levels[i].filepath, src_lsm->levels[i].filepath) != 0)
         {
-            printf("destroying file %s\n", new_lsm->levels[i].filepath);
+            // printf("destroying file %s\n", new_lsm->levels[i].filepath);
             remove(new_lsm->levels[i].filepath);
             new_lsm->levels[i].filepath[0] = '\0';
         }
@@ -201,7 +201,7 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
     char old_path[64];
     strcpy(old_path, lsm->levels[fresh_level].filepath);
 
-    FILE *fp_old_flush;
+    FILE *fp_old_flush = NULL;
 
     // no file to open if fresh_level is 0
     if (fresh_level != 0)
@@ -228,7 +228,7 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
     }
     char new_path[64];
     set_filename(new_path);
-    printf("merge into level: %d - fp_temp create %s\n", deeper_level, new_path);
+    // printf("merge into level: %d - fp_temp create %s\n", deeper_level, new_path);
     FILE *fp_temp = fopen(new_path, "wb");
 
     // create buffer that can accomodate both levels
@@ -270,15 +270,11 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
 
     if (fresh_level != 0)
     {
-        // TODO i dont think i need this anymore since of the check for current_path
-        // char new_old_path[64];
-        // set_filename(new_old_path);
-        // // touch new old level file
-        // printf("fp_new_old create %s\n", new_old_path);
-        // FILE *fp_new_old = fopen(new_old_path, "wb");
-        // fclose(fp_new_old);
+        // printf("remove old level file: %s\n", old_path);
+        remove(old_path);
+        // set old level filepath to empty
+        lsm->levels[fresh_level].filepath[0] = '\0';
         fclose(fp_old_flush);
-        // strcpy(lsm->levels[fresh_level].filepath, new_old_path);
     }
 
     // update filepaths
@@ -324,15 +320,6 @@ void init_level(lsmtree *lsm, int deeper_level)
         }
 
         reset_level(&(lsm->levels[deeper_level]), deeper_level, lsm->levels[deeper_level - 1].size * 10);
-        // set_filename(lsm->levels[deeper_level].filepath);
-        // printf("fp_level %d, init create %s\n", deeper_level, lsm->levels[deeper_level].filepath);
-        // FILE *fp = fopen(lsm->levels[deeper_level].filepath, "wb");
-        // if (fp == NULL)
-        // {
-        //     printf("Error: fopen failed init_layer\n");
-        //     exit(1);
-        // }
-        // fclose(fp);
     }
 }
 
