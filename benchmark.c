@@ -5,9 +5,9 @@
 #include <math.h>
 #include "lsm.h"
 
-
-void shuffle_list(node * random_array, int size){
-    // shuffle random_array
+void shuffle_list(node *random_array, int size)
+{
+  // shuffle random_array
   for (int i = 0; i < size; i++)
   {
     int j = rand() % size;
@@ -15,9 +15,7 @@ void shuffle_list(node * random_array, int size){
     random_array[i] = random_array[j];
     random_array[j] = temp;
   }
-
 }
-
 
 int main(void)
 {
@@ -35,7 +33,7 @@ int main(void)
   {
     random_array[i] = (node){i, rand()};
   }
-  shuffle_list(random_array,num_inserts);
+  shuffle_list(random_array, num_inserts);
 
   // run INSERT benchmark
   struct timeval stop, start;
@@ -51,14 +49,13 @@ int main(void)
   double secs = (double)(stop.tv_usec - start.tv_usec) / 1000000 + (double)(stop.tv_sec - start.tv_sec);
   printf("%d insertions took %f seconds\n", num_inserts, secs);
 
-
-  shuffle_list(random_array,num_inserts);
+  shuffle_list(random_array, num_inserts);
   // run GET benchmark
   gettimeofday(&start, NULL);
   // get each node in random_array
   for (int i = 0; i < num_inserts; i++)
   {
-    assert( get(lsm, random_array[i].key) == random_array[i].value);
+    assert(get(lsm, random_array[i].key) == random_array[i].value);
   }
   gettimeofday(&stop, NULL);
   secs = (double)(stop.tv_usec - start.tv_usec) / 1000000 + (double)(stop.tv_sec - start.tv_sec);

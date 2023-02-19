@@ -34,6 +34,10 @@ void basic_buffer_test()
     assert(get(lsm, 5) == 10);
     assert(get(lsm, 12) == 13);
     assert(get(lsm, 1) == -1);
+
+    // newer write should be returned from buffer
+    insert(lsm, 5, 11);
+    assert(get(lsm, 5) == 11);
     destroy(lsm);
 }
 
@@ -138,7 +142,7 @@ void sort_test()
         assert(r == lsm->levels[i].count);
         for (int j = 0; j < r - 1; j++)
         {
-            assert(nodes[j].key <= nodes[j + 1].key);
+            assert(nodes[j].key < nodes[j + 1].key);
         }
         fclose(fp);
         free(nodes);
@@ -211,12 +215,48 @@ void large_buffer_size_complex()
         assert(r == lsm->levels[i].count);
         for (int j = 0; j < r - 1; j++)
         {
-            assert(nodes[j].key <= nodes[j + 1].key);
+            assert(nodes[j].key < nodes[j + 1].key);
         }
         fclose(fp);
         free(nodes);
     }
 
+    destroy(lsm);
+}
+
+void compact_test()
+{
+    node buffer[10] = {
+        {1, 2},
+        {2, 4},
+        {3, 6},
+        {4, 8},
+        {3, 9},
+        {6, 12},
+        {7, 14},
+        {8, 16},
+        {6, 11},
+    };
+    int buffer_size = 10;
+    // result should be sorted by key and duplicates removed with later values kept ({3,9} and {6,11})
+    compact(buffer, &buffer_size);
+    assert(buffer_size == 8);
+    for (int i = 0; i < buffer_size - 1; i++)
+    {
+        assert(buffer[i].key < buffer[i + 1].key);
+    }
+}
+
+void dedup_test()
+{
+    lsmtree *lsm = create(10);
+    // insert 400 nodes with the same key and increasing values
+    for (int i = 0; i < 400; i++)
+    {
+        insert(lsm, 1, i);
+    }
+    // ensure that the value is the last value inserted
+    assert(get(lsm, 1) == 399);
     destroy(lsm);
 }
 
@@ -230,6 +270,7 @@ int main(void)
     sort_test();
     fence_pointers_correct();
     large_buffer_size_complex();
+    compact_test();
 
     return 0;
 }
