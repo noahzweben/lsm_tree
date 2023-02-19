@@ -5,10 +5,16 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <pthread.h>
+#include <unistd.h>
 
 int BLOCK_SIZE_NODES = 4096 / sizeof(node);
 // merge mutex
 pthread_mutex_t merge_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t write_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t write_cond = PTHREAD_COND_INITIALIZER;
+
+// condition
+int merge_in_progress = 0;
 // read mutex
 pthread_mutex_t read_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -116,22 +122,23 @@ void copy_tree(lsmtree *new_lsm, lsmtree *src_lsm)
 // insert a key-value pair into the LSM tree
 void insert(lsmtree *lsm, keyType key, valType value)
 {
-    // if buffer is full return an error
-    if (lsm->memtable_level->count == lsm->memtable_level->size)
+    // get write mutex
+    pthread_mutex_lock(&write_mutex);
+    // while memtable is full wait
+    while (lsm->memtable_level->count == lsm->memtable_level->size)
     {
-        printf("Error: buffer is full\n");
-        exit(1);
+        pthread_cond_wait(&write_cond, &write_mutex);
     }
 
     // create new node on the stack
-
     node n = {key, value};
     lsm->memtable[(lsm->memtable_level->count)++] = n;
+    // unlock write
+    pthread_mutex_unlock(&write_mutex);
 
     // if buffer is full, move to disk
     if (lsm->memtable_level->count == lsm->memtable_level->size)
     {
-
         // call flush_to_level in a nonblocking thread
         pthread_t thread;
         struct flush_args *args = (struct flush_args *)malloc(sizeof(struct flush_args));
@@ -144,14 +151,21 @@ void insert(lsmtree *lsm, keyType key, valType value)
 void *init_flush_thread(void *args)
 {
     pthread_mutex_lock(&merge_mutex);
+
     struct flush_args *flush_args = (struct flush_args *)args;
     lsmtree *lsm = flush_args->lsm;
 
     // copy memtable to flush buffer and copy level metadata to level[0]
+    // lock write mutex
+    pthread_mutex_lock(&write_mutex);
     memcpy(lsm->flush_buffer, lsm->memtable, lsm->memtable_level->size * sizeof(node));
     memcpy(&lsm->levels[0], lsm->memtable_level, sizeof(level));
+    // unlock write mutex
     // accept writes to memtable again
     reset_level(lsm->memtable_level, lsm->memtable_level->level, lsm->memtable_level->size);
+    pthread_mutex_unlock(&write_mutex);
+    // signal to write_cond
+    pthread_cond_signal(&write_cond);
 
     lsmtree *merge_lsm = create(flush_args->lsm->memtable_level->size);
     pthread_mutex_lock(&read_mutex);
@@ -214,7 +228,7 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
     }
     char new_path[64];
     set_filename(new_path);
-    printf("fp_temp create %s\n", new_path);
+    printf("merge into level: %d - fp_temp create %s\n", deeper_level, new_path);
     FILE *fp_temp = fopen(new_path, "wb");
 
     // create buffer that can accomodate both levels
@@ -256,14 +270,15 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
 
     if (fresh_level != 0)
     {
-        char new_old_path[64];
-        set_filename(new_old_path);
-        // touch new old level file
-        printf("fp_new_old create %s\n", new_old_path);
-        FILE *fp_new_old = fopen(new_old_path, "wb");
-        fclose(fp_new_old);
+        // TODO i dont think i need this anymore since of the check for current_path
+        // char new_old_path[64];
+        // set_filename(new_old_path);
+        // // touch new old level file
+        // printf("fp_new_old create %s\n", new_old_path);
+        // FILE *fp_new_old = fopen(new_old_path, "wb");
+        // fclose(fp_new_old);
         fclose(fp_old_flush);
-        strcpy(lsm->levels[fresh_level].filepath, new_old_path);
+        // strcpy(lsm->levels[fresh_level].filepath, new_old_path);
     }
 
     // update filepaths
@@ -326,7 +341,7 @@ int get(lsmtree *lsm, keyType key)
 {
     //  acquire read mutex
     pthread_mutex_lock(&read_mutex);
-    print_tree("baby", lsm);
+    // print_tree("baby", lsm);
     // MOST RECENT: search memtable for key starting form back
     for (int i = lsm->memtable_level->count - 1; i >= 0; i--)
     {
