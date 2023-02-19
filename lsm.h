@@ -31,6 +31,7 @@ typedef struct level
 typedef struct lsmtree
 {
     node *buffer;
+    node *flush_buffer;
     int max_level;
     level *levels;
 
@@ -41,8 +42,10 @@ void destroy(lsmtree *lsm);
 void insert(lsmtree *lsm, keyType key, valType value);
 int get(lsmtree *lsm, keyType key);
 int get_from_disk(lsmtree *lsm, keyType key, int level);
-void flush_to_level(lsmtree *lsm, int level);
 void init_level(lsmtree *lsm, int level);
 void compact(node *buffer, int *buffer_size);
 void build_fence_pointers(level *level, node *buffer, int buffer_size);
+
+// threaded
+void *flush_to_level(void *args);
 #endif

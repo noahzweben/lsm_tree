@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <pthread.h>
 
 int BLOCK_SIZE_NODES = 4096 / sizeof(node);
 
@@ -46,6 +47,13 @@ lsmtree *create(int buffer_size)
 // insert a key-value pair into the LSM tree
 void insert(lsmtree *lsm, keyType key, valType value)
 {
+    // if buffer is full return an error
+    if (lsm->levels[0].count == lsm->levels[0].size)
+    {
+        printf("Error: buffer is full\n");
+        exit(1);
+    }
+
     // create new node on the stack
     node n = {key, value};
     lsm->buffer[(lsm->levels[0].count)++] = n;
@@ -53,12 +61,22 @@ void insert(lsmtree *lsm, keyType key, valType value)
     // if buffer is full, move to disk
     if (lsm->levels[0].count == lsm->levels[0].size)
     {
-        flush_to_level(lsm, 1);
+        // call flush_to_level in a nonblocking thread
+        printf("im here mom\n");
+        pthread_t thread;
+        int *flush_level = (int *)malloc(sizeof(int));
+        *flush_level = 1;
+        void *args[] = {&lsm, &flush_level};
+        pthread_create(&thread, NULL, flush_to_level, args);
+        pthread_detach(thread);
     }
 }
 
-void flush_to_level(lsmtree *lsm, int deeper_level)
+void *flush_to_level(void *args)
 {
+    lsmtree *lsm = ((lsmtree **)args)[0];
+    int deeper_level = *(((int **)args)[1]);
+    printf("in here trying to flush to level %d\n", deeper_level);
 
     init_level(lsm, deeper_level);
     int old_level = deeper_level - 1;
@@ -159,8 +177,16 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
     // check if new level is full
     if (lsm->levels[deeper_level].count == lsm->levels[deeper_level].size)
     {
-        flush_to_level(lsm, deeper_level + 1);
+        int *new_deeper_level = (int *)malloc(sizeof(int));
+        *new_deeper_level = deeper_level + 1;
+        void *args[] = {&lsm, &new_deeper_level};
+        (*flush_to_level)(args);
     }
+
+    // free the deeper level args
+    free(((int **)args)[1]);
+
+    return NULL;
 }
 
 void init_level(lsmtree *lsm, int deeper_level)
