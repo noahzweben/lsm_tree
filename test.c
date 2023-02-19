@@ -7,27 +7,28 @@
 #include <uuid/uuid.h>
 #include "helpers.h"
 #include <unistd.h>
+#include <pthread.h>
 
 void basic_buffer_test()
 {
     // basic create functionality
     lsmtree *lsm = create(10);
-    assert(lsm->levels[0].size == 10);
-    assert(lsm->levels[0].count == 0);
+    assert(lsm->memtable_level.size == 10);
+    assert(lsm->memtable_level.count == 0);
 
     // first write functionality
     insert(lsm, 5, 10);
-    int buffer_count = lsm->levels[0].count;
+    int buffer_count = lsm->memtable_level.count;
     assert(buffer_count == 1);
-    node new_node = lsm->flush_buffer[buffer_count - 1];
+    node new_node = lsm->memtable[buffer_count - 1];
     assert(new_node.key == 5);
     assert(new_node.value == 10);
 
     // second write functionality
     insert(lsm, 12, 13);
-    buffer_count = lsm->levels[0].count;
+    buffer_count = lsm->memtable_level.count;
     assert(buffer_count == 2);
-    new_node = lsm->flush_buffer[buffer_count - 1];
+    new_node = lsm->memtable[buffer_count - 1];
     assert(new_node.key == 12);
     assert(new_node.value == 13);
 
@@ -50,14 +51,17 @@ void level_1_test()
     {
         insert(lsm, i, 2 * i);
     }
-    // sleep for 2 seconds
-    sleep(2);
-
-    assert(lsm->levels[0].count == 0);
-    assert(lsm->levels[1].count == 10);
     assert(get(lsm, 7) == 14);
     assert(get(lsm, 2) == 4);
     assert(get(lsm, 12) == -1);
+    // since were testing level 1, we need to wait for the thread to finish to reason
+    // about the internal state of the system
+    // GETS should be available immediately
+    sleep(2);
+    assert(lsm->memtable_level.count == 0);
+    assert(lsm->levels[0].count == 0);
+    assert(lsm->levels[1].count == 10);
+
     FILE *fp = fopen(lsm->levels[1].filepath, "r");
     assert(fp != NULL);
     node *nodes = (node *)malloc(sizeof(node) * BLOCK_SIZE_NODES);
@@ -82,16 +86,21 @@ void level_2_test()
     {
         insert(lsm, i, 2 * i);
     }
-    assert(lsm->levels[0].count == 9);
-    assert(lsm->levels[1].count == 0);
-    assert(lsm->levels[2].count == 200);
 
     for (int i = 0; i < max_int; i++)
     {
-
-        assert(get(lsm, i) == 2 * i);
+        int getR = get(lsm, i);
+        printf("key %d: %d\n", i, getR);
+        assert(getR == 2 * i);
     }
     assert(get(lsm, 210) == -1);
+
+    // since were testing the internal state of the system, need to wait for it to settle
+    sleep(2);
+
+    assert(lsm->memtable_level.count == 9);
+    assert(lsm->levels[1].count == 0);
+    assert(lsm->levels[2].count == 200);
 
     destroy(lsm);
 }
@@ -110,7 +119,9 @@ void level_3_test()
     for (int i = 0; i < max_int; i++)
     {
         // printf("key %d: %d\n", i, get(lsm, i));
-        assert(get(lsm, i) == 2 * i);
+        int getR = get(lsm, i);
+        printf("key %d: %d\n", i, getR);
+        assert(getR == 2 * i);
     }
     assert(get(lsm, 511) == -1);
     destroy(lsm);
@@ -269,11 +280,12 @@ int main(void)
     basic_buffer_test();
     level_1_test();
     level_2_test();
-    // level_3_test();
-    // sort_test();
-    // fence_pointers_correct();
-    // large_buffer_size_complex();
-    // compact_test();
+    level_3_test();
+    sort_test();
+    fence_pointers_correct();
+    large_buffer_size_complex();
+    compact_test();
+    dedup_test();
 
     return 0;
 }
