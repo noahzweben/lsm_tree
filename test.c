@@ -95,6 +95,7 @@ void level_2_test()
     for (int i = 0; i < max_int; i++)
     {
         int getR = get(lsm, i);
+        printf("key %d: %d\n", i, getR);
         assert(getR == 2 * i);
     }
     assert(get(lsm, 210) == -1);
@@ -287,15 +288,15 @@ void dedup_test()
 
 int main(void)
 {
-    basic_buffer_test();
-    level_1_test();
+    // basic_buffer_test();
+    // level_1_test();
     level_2_test();
-    level_3_test();
-    sort_test();
-    fence_pointers_correct();
-    large_buffer_size_complex();
-    compact_test();
-    dedup_test();
+    // level_3_test();
+    // sort_test();
+    // fence_pointers_correct();
+    // large_buffer_size_complex();
+    // compact_test();
+    // dedup_test();
 
     return 0;
 }

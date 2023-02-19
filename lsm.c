@@ -88,7 +88,7 @@ void copy_tree(lsmtree *new_lsm, lsmtree *src_lsm)
         // free fence pointers and files before theyre copied over
         if (new_lsm->max_level >= i && new_lsm->levels[i].fence_pointer_count > 0)
         {
-            remove(new_lsm->levels[i].filepath);
+            // remove(new_lsm->levels[i].filepath);
             free(new_lsm->levels[i].fence_pointers);
         }
         // copy levels
@@ -314,6 +314,7 @@ void init_level(lsmtree *lsm, int deeper_level)
 // get a value
 int get(lsmtree *lsm, keyType key)
 {
+    print_tree("baby", lsm);
     //  acquire read mutex
     pthread_mutex_lock(&read_mutex);
     // MOST RECENT: search memtable for key starting form back
