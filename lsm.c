@@ -314,9 +314,10 @@ void init_level(lsmtree *lsm, int deeper_level)
 // get a value
 int get(lsmtree *lsm, keyType key)
 {
-    print_tree("baby", lsm);
+    // print_tree("baby", lsm);
     //  acquire read mutex
     pthread_mutex_lock(&read_mutex);
+    print_tree("baby", lsm);
     // MOST RECENT: search memtable for key starting form back
     for (int i = lsm->memtable_level->count - 1; i >= 0; i--)
     {
