@@ -22,7 +22,7 @@ lsmtree *create(int buffer_size)
     lsmtree *lsm = (lsmtree *)malloc(sizeof(lsmtree));
     if (lsm == NULL)
     {
-        printf("Error: malloc failed in create\n");
+        printf("Error1: malloc failed in create\n");
         exit(1);
     }
 
@@ -31,7 +31,7 @@ lsmtree *create(int buffer_size)
     lsm->levels = (level *)malloc(sizeof(level) * (lsm->max_level + 1));
     if (lsm->levels == NULL)
     {
-        printf("Error: malloc failed in create\n");
+        printf("Error2: malloc failed in create\n");
         exit(1);
     }
     pthread_mutex_init(&lsm->memtable_level.level_mutex, NULL);
@@ -53,9 +53,9 @@ void init_memtable(lsmtree *lsm, int buffer_size)
 
     // create memtable buffer
     lsm->memtable = (node *)malloc(sizeof(node) * buffer_size);
-    if (lsm->flush_buffer == NULL)
+    if (lsm->memtable == NULL)
     {
-        printf("Error: malloc failed in create\n");
+        printf("Error3: malloc failed in create\n");
         exit(1);
     }
     // release memtable mutex
