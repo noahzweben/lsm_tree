@@ -68,7 +68,6 @@ void insert(lsmtree *lsm, keyType key, valType value)
     if (lsm->levels[0].count == lsm->levels[0].size)
     {
         // call flush_to_level in a nonblocking thread
-        printf("im here mom\n");
         pthread_t thread;
         struct flush_args *args = (struct flush_args *)malloc(sizeof(struct flush_args));
         args->lsm = lsm;
@@ -84,9 +83,6 @@ void *flush_to_level(void *args)
     lsmtree *lsm = ((struct flush_args *)args)->lsm;
     int deeper_level = ((struct flush_args *)args)->level;
     free(args);
-    printf("burp\n");
-    printf("in here trying to flush to level %d\n", deeper_level);
-
     init_level(lsm, deeper_level);
     int old_level = deeper_level - 1;
 
