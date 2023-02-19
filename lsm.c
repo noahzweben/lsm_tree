@@ -125,19 +125,10 @@ void insert(lsmtree *lsm, keyType key, valType value)
     if (lsm->memtable_level->count == lsm->memtable_level->size)
     {
 
-        // One overall flush at a time
-        pthread_mutex_lock(&merge_mutex);
-
-        // copy memtable to flush buffer and copy level metadata to level[0]
-        memcpy(lsm->flush_buffer, lsm->memtable, lsm->memtable_level->size * sizeof(node));
-        memcpy(&lsm->levels[0], lsm->memtable_level, sizeof(level));
-        // accept writes to memtable again
-        reset_level(lsm->memtable_level, lsm->memtable_level->level, lsm->memtable_level->size);
 
         // call flush_to_level in a nonblocking thread
         pthread_t thread;
         struct flush_args *args = (struct flush_args *)malloc(sizeof(struct flush_args));
-
         args->lsm = lsm;
         pthread_create(&thread, NULL, init_flush_thread, (void *)args);
         pthread_detach(thread);
@@ -146,7 +137,16 @@ void insert(lsmtree *lsm, keyType key, valType value)
 
 void *init_flush_thread(void *args)
 {
-    struct flush_args *flush_args = (struct flush_args *)args;
+      pthread_mutex_lock(&merge_mutex);
+        struct flush_args *flush_args = (struct flush_args *)args;
+        lsmtree *lsm = flush_args->lsm;
+      
+        // copy memtable to flush buffer and copy level metadata to level[0]
+        memcpy(lsm->flush_buffer, lsm->memtable, lsm->memtable_level->size * sizeof(node));
+        memcpy(&lsm->levels[0], lsm->memtable_level, sizeof(level));
+        // accept writes to memtable again
+        reset_level(lsm->memtable_level, lsm->memtable_level->level, lsm->memtable_level->size);
+
     lsmtree *merge_lsm = create(flush_args->lsm->memtable_level->size);
     pthread_mutex_lock(&read_mutex);
     copy_tree(merge_lsm, flush_args->lsm);

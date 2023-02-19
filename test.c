@@ -9,6 +9,8 @@
 #include <unistd.h>
 #include <pthread.h>
 
+int counter = 0;
+
 void basic_buffer_test()
 {
     printf("basic_buffer_test\n");
@@ -60,7 +62,7 @@ void level_1_test()
     // since were testing level 1, we need to wait for the thread to finish to reason
     // about the internal state of the system
     // GETS should be available immediately
-    sleep(1);
+    sleep(3);
     assert(lsm->memtable_level->count == 0);
     assert(lsm->levels[0].count == 0);
     assert(lsm->levels[1].count == 10);
@@ -289,8 +291,8 @@ void dedup_test()
 int main(void)
 {
     // basic_buffer_test();
-    // level_1_test();
-    level_2_test();
+    level_1_test();
+    // level_2_test();
     // level_3_test();
     // sort_test();
     // fence_pointers_correct();
