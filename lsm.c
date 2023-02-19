@@ -8,6 +8,12 @@
 
 int BLOCK_SIZE_NODES = 4096 / sizeof(node);
 
+
+struct flush_args {
+    lsmtree *lsm;
+    int level;
+};
+
 // return a pointer to a new LSM tree
 lsmtree *create(int buffer_size)
 {
@@ -74,9 +80,13 @@ void insert(lsmtree *lsm, keyType key, valType value)
 
 void *flush_to_level(void *args)
 {
+
     lsmtree *lsm = ((lsmtree **)args)[0];
-    int deeper_level = *(((int **)args)[1]);
+    printf("sup\n");
+    int deeper_level = args[1];
+    printf("burp\n");
     printf("in here trying to flush to level %d\n", deeper_level);
+
 
     init_level(lsm, deeper_level);
     int old_level = deeper_level - 1;

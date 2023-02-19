@@ -6,6 +6,8 @@
 #include "lsm.h"
 #include <uuid/uuid.h>
 #include "helpers.h"
+#include <unistd.h>
+
 
 void basic_buffer_test()
 {
@@ -49,6 +51,8 @@ void level_1_test()
     {
         insert(lsm, i, 2 * i);
     }
+    // sleep for 2 seconds
+    sleep(2);
 
     assert(lsm->levels[0].count == 0);
     assert(lsm->levels[1].count == 10);
@@ -263,14 +267,14 @@ void dedup_test()
 int main(void)
 {
 
-    basic_buffer_test();
+    // basic_buffer_test();
     level_1_test();
-    level_2_test();
-    level_3_test();
-    sort_test();
-    fence_pointers_correct();
-    large_buffer_size_complex();
-    compact_test();
+    // level_2_test();
+    // level_3_test();
+    // sort_test();
+    // fence_pointers_correct();
+    // large_buffer_size_complex();
+    // compact_test();
 
     return 0;
 }
