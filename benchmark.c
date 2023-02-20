@@ -21,7 +21,7 @@ void shuffle_list(node *random_array, int size)
 int main(int argc, char **argv)
 {
   // setup benchmark
-  lsmtree *lsm = create(10);
+  lsmtree *lsm = create(BLOCK_SIZE_NODES);
 
   int seed = 2;
   srand(seed);
