@@ -153,6 +153,8 @@ void *init_flush_thread(void *args)
     // copy memtable to flush buffer and copy level metadata to level[0]
     // lock write mutex
     pthread_mutex_lock(&write_mutex);
+    pthread_mutex_lock(&read_mutex);
+
     memcpy(lsm->flush_buffer, lsm->memtable, lsm->memtable_level->size * sizeof(node));
     memcpy(&lsm->levels[0], lsm->memtable_level, sizeof(level));
     // unlock write mutex
@@ -160,6 +162,8 @@ void *init_flush_thread(void *args)
     reset_level(lsm->memtable_level, lsm->memtable_level->level, lsm->memtable_level->size);
     pthread_cond_signal(&write_cond);
     pthread_mutex_unlock(&write_mutex);
+    pthread_mutex_unlock(&read_mutex);
+
 
     lsmtree *merge_lsm = create(lsm->memtable_level->size);
     copy_tree(merge_lsm, lsm);
