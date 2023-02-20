@@ -247,7 +247,6 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
     {
         fread(buffer, sizeof(node), lsm->levels[deeper_level].count, fp_current_layer);
     }
-
     // read fresher level into buffer
     if (fresh_level == 0)
     {
@@ -271,7 +270,6 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
 
     if (fresh_level != 0)
     {
-        // printf("remove old level file: %s\n", old_path);
         remove(old_path);
         // set old level filepath to empty
         lsm->levels[fresh_level].filepath[0] = '\0';
@@ -322,7 +320,6 @@ void init_level(lsmtree *lsm, int deeper_level)
             printf("Error: realloc failed in flush_from_buffer\n");
             exit(1);
         }
-
         reset_level(&(lsm->levels[deeper_level]), deeper_level, lsm->levels[deeper_level - 1].size * 10);
     }
 }
