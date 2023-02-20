@@ -9,7 +9,6 @@ Q: do merging in background process, what if it takes long enough that buffer fi
 * range queries
 * delete
 * uint vs int
+* multiple reads at once
 
-* make things const
-* only allow one merge operation at a given time mutex
-* does mutex block within same thread
+

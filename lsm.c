@@ -126,7 +126,11 @@ void insert(lsmtree *lsm, keyType key, valType value)
 
     // create new node on the stack
     node n = {key, value};
-    lsm->memtable[(lsm->memtable_level->count)++] = n;
+    lsm->memtable[lsm->memtable_level->count] = n;
+    // if we do the increment after inserting the node, we can read
+    // in a threadsafe manner. Worse case scenario if a read starts before the increment,
+    // it will just miss the most recently written node
+    lsm->memtable_level->count++;
     // unlock write
     pthread_mutex_unlock(&write_mutex);
 
@@ -321,9 +325,8 @@ int get(lsmtree *lsm, keyType key)
 {
     //  acquire read mutex
     pthread_mutex_lock(&read_mutex);
-    // print_tree("baby", lsm);
     // MOST RECENT: search memtable for key starting form back
-    for (int i = lsm->memtable_level->count - 1; i >= 0; i--)
+    for (int i = lsm->memtable_level->count; -1; i >= 0; i--)
     {
         if (lsm->memtable[i].key == key)
         {
