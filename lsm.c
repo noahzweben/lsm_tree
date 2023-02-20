@@ -79,16 +79,15 @@ void reset_level(level *level, int level_num, int buffer_size)
 void copy_tree(lsmtree *new_lsm, lsmtree *src_lsm)
 {
     // reallocate levels in new lsm
-    level *new_levels = (level *)calloc(sizeof(level),(src_lsm->max_level + 1)); 
+    level *new_levels = (level *)calloc(sizeof(level), (src_lsm->max_level + 1));
     if (new_lsm->levels == NULL)
     {
         printf("Error6: malloc failed in create\n");
         exit(1);
     }
-    memcpy(new_levels,new_lsm->levels,sizeof(level) * (new_lsm->max_level + 1));
+    memcpy(new_levels, new_lsm->levels, sizeof(level) * (new_lsm->max_level + 1));
     free(new_lsm->levels);
     new_lsm->levels = new_levels;
- 
 
     // copy levels
     for (int i = 0; i <= src_lsm->max_level; i++)
@@ -154,7 +153,7 @@ void *init_flush_thread(void *args)
 {
     pthread_mutex_lock(&merge_mutex);
 
-    // struct flush_args *flush_args = (struct flush_args *)args;    
+    // struct flush_args *flush_args = (struct flush_args *)args;
     lsmtree *lsm = (lsmtree *)args;
     // free(flush_args);
 
@@ -294,7 +293,8 @@ void flush_to_level(lsmtree *lsm, int deeper_level)
     // update old level count
     lsm->levels[fresh_level]
         .count = 0;
-    if (fp_current_layer != NULL){
+    if (fp_current_layer != NULL)
+    {
         fclose(fp_current_layer);
     }
     fclose(fp_temp);
@@ -349,11 +349,7 @@ int get(lsmtree *lsm, keyType key)
     {
         if (lsm->flush_buffer[i].key == key)
         {
-            // int value = lsm->flush_buffer[i].value;
-            // if (value != 2*key){
-            //     printf("B: got %d from level %d -%d\n", key, i,value);
-            // }
-             int value = lsm->flush_buffer[i].value;
+            int value = lsm->flush_buffer[i].value;
             pthread_mutex_unlock(&read_mutex);
             return value;
         }
@@ -367,10 +363,6 @@ int get(lsmtree *lsm, keyType key)
         value = get_from_disk(lsm, key, i);
         if (value != -1)
         {
-            if (value != 2*key){
-                printf("C: got %d from level %d -%d\n", key, i,value);
-            }
-
             pthread_mutex_unlock(&read_mutex);
             return value;
         }
