@@ -326,7 +326,7 @@ int get(lsmtree *lsm, keyType key)
     //  acquire read mutex
     pthread_mutex_lock(&read_mutex);
     // MOST RECENT: search memtable for key starting form back
-    for (int i = lsm->memtable_level->count; -1; i >= 0; i--)
+    for (int i = lsm->memtable_level->count - 1; i >= 0; i--)
     {
         if (lsm->memtable[i].key == key)
         {
