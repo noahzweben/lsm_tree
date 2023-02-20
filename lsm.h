@@ -1,3 +1,5 @@
+#include <pthread.h>
+
 #ifndef CS265_LSM // This is a header guard. It prevents the header from being included more than once.
 #define CS265_LSM
 
@@ -5,6 +7,8 @@ typedef int keyType;
 typedef int valType;
 
 extern int BLOCK_SIZE_NODES;
+extern pthread_mutex_t merge_mutex;
+extern pthread_mutex_t write_mutex;
 
 typedef struct node
 {

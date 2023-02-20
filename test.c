@@ -62,7 +62,10 @@ void level_1_test()
     // since were testing level 1, we need to wait for the thread to finish to reason
     // about the internal state of the system
     // GETS should be available immediately
-    sleep(3);
+    sleep(1);
+    pthread_mutex_lock(&merge_mutex);
+
+    print_tree("hey know",lsm);
     assert(lsm->memtable_level->count == 0);
     assert(lsm->levels[0].count == 0);
     assert(lsm->levels[1].count == 10);
@@ -79,7 +82,7 @@ void level_1_test()
     }
     fclose(fp);
     free(nodes);
-    print_tree("l1_test", lsm);
+    pthread_mutex_unlock(&merge_mutex);
     destroy(lsm, 0);
 }
 
@@ -104,10 +107,11 @@ void level_2_test()
 
     // since were testing the internal state of the system, need to wait for it to settle
     sleep(1);
-
+    pthread_mutex_lock(&merge_mutex);
     assert(lsm->memtable_level->count == 9);
     assert(lsm->levels[1].count == 0);
     assert(lsm->levels[2].count == 200);
+    pthread_mutex_unlock(&merge_mutex);
 
     destroy(lsm, 0);
 }
@@ -150,6 +154,8 @@ void sort_test()
         insert(lsm, num, 2 * num);
     }
     // for each level 1 and on, ensure that the keys are sorted
+    sleep(1);
+    pthread_mutex_lock(&merge_mutex);
     for (int i = 1; i <= lsm->max_level; i++)
     {
         const int level_count = lsm->levels[i].count;
@@ -175,7 +181,7 @@ void sort_test()
     {
         assert(get(lsm, random_array[i]) == 2 * random_array[i]);
     }
-
+    pthread_mutex_unlock(&merge_mutex);
     destroy(lsm, 0);
 }
 
@@ -195,14 +201,17 @@ void fence_pointers_correct()
     for (int i = offset; i < max_int + offset; i++)
     {
         int getR = get(lsm, i);
+        // printf("{%d,%d}\n",i,getR);
         assert(getR == 2 * i);
     }
     // since were testing internals of level 1, we need to wait for the thread to finish to reason
-    sleep(1);
     // ensure that the fence pointers are correct
+    // get merge_lock
+  sleep(1);
+pthread_mutex_lock(&merge_mutex);
     assert(lsm->levels[1].fence_pointers[0].key == 0 + offset);
     assert(lsm->levels[1].fence_pointers[1].key == 512 + offset);
-
+    pthread_mutex_unlock(&merge_mutex);
     destroy(lsm, 0);
 }
 
@@ -226,6 +235,8 @@ void large_buffer_size_complex()
         assert(getR == 2 * random_array[i]);
     }
     // assert that each level is sorted correctly
+    sleep(1);
+    pthread_mutex_lock(&merge_mutex);
     for (int i = 1; i <= lsm->max_level; i++)
     {
         const int level_count = lsm->levels[i].count;
@@ -245,7 +256,7 @@ void large_buffer_size_complex()
         fclose(fp);
         free(nodes);
     }
-
+  pthread_mutex_unlock(&merge_mutex);
     destroy(lsm, 0);
 }
 
