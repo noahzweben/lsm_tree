@@ -43,6 +43,7 @@ int get(lsmtree *lsm, keyType key);
 int get_from_disk(lsmtree *lsm, keyType key, int level);
 void flush_to_level(lsmtree *lsm, int level);
 void init_level(lsmtree *lsm, int level);
+void reset_level(level *level, int level_num, int level_size);
 void compact(node *buffer, int *buffer_size);
 void build_fence_pointers(level *level, node *buffer, int buffer_size);
 #endif
