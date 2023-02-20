@@ -12,14 +12,7 @@ int BLOCK_SIZE_NODES = 4096 / sizeof(node);
 pthread_mutex_t merge_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t write_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t write_cond = PTHREAD_COND_INITIALIZER;
-
-// read mutex
 pthread_mutex_t read_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-struct flush_args
-{
-    lsmtree *lsm;
-};
 
 // return a pointer to a new LSM tree
 lsmtree *create(int buffer_size)
