@@ -169,13 +169,11 @@ void *init_flush_thread(void *args)
     pthread_mutex_unlock(&write_mutex);
 
     lsmtree *merge_lsm = create(lsm->memtable_level->size);
-    pthread_mutex_lock(&read_mutex);
     copy_tree(merge_lsm, lsm);
-    pthread_mutex_unlock(&read_mutex);
     // merge
     flush_to_level(merge_lsm, 1);
 
-    // lock read mutex
+    // lock read mutex as we switch over lsm tree
     pthread_mutex_lock(&read_mutex);
     copy_tree(lsm, merge_lsm);
     // unlock read mutex
