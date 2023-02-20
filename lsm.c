@@ -13,8 +13,6 @@ pthread_mutex_t merge_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t write_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t write_cond = PTHREAD_COND_INITIALIZER;
 
-// condition
-int merge_in_progress = 0;
 // read mutex
 pthread_mutex_t read_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -340,8 +338,9 @@ int get(lsmtree *lsm, keyType key)
     {
         if (lsm->memtable[i].key == key)
         {
+            int value = lsm->memtable[i].value;
             pthread_mutex_unlock(&read_mutex);
-            return lsm->memtable[i].value;
+            return value;
         }
     }
 
@@ -350,8 +349,13 @@ int get(lsmtree *lsm, keyType key)
     {
         if (lsm->flush_buffer[i].key == key)
         {
+            // int value = lsm->flush_buffer[i].value;
+            // if (value != 2*key){
+            //     printf("B: got %d from level %d -%d\n", key, i,value);
+            // }
+             int value = lsm->flush_buffer[i].value;
             pthread_mutex_unlock(&read_mutex);
-            return lsm->flush_buffer[i].value;
+            return value;
         }
     }
 
@@ -363,6 +367,10 @@ int get(lsmtree *lsm, keyType key)
         value = get_from_disk(lsm, key, i);
         if (value != -1)
         {
+            if (value != 2*key){
+                printf("C: got %d from level %d -%d\n", key, i,value);
+            }
+
             pthread_mutex_unlock(&read_mutex);
             return value;
         }
