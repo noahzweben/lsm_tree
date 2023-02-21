@@ -7,6 +7,11 @@
 #include <pthread.h>
 #include <unistd.h>
 
+#define max(a,b) \
+   ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a > _b ? _a : _b; })
+     
 int BLOCK_SIZE_NODES = 4096 / sizeof(node);
 // merge mutex
 pthread_mutex_t merge_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -93,13 +98,19 @@ void copy_level(level *dest_level, level *src_level, int dest_max_level, int cop
         dest_level->fence_pointers = (fence_pointer *)malloc(sizeof(fence_pointer) * src_level->fence_pointer_count);
         memcpy(dest_level->fence_pointers, src_level->fence_pointers, sizeof(fence_pointer) * src_level->fence_pointer_count);
     }
+
+    free(src_level->fence_pointers);
 }
 
 // // make a shadow tree we perform the merge on
 void copy_tree(lsmtree *new_lsm, level *src_levels, int depth)
 {
+    printf("zoinks %d\n", depth);
     // reallocate levels in new lsm
-    level *new_levels = (level *)calloc(sizeof(level), depth + 1);
+    // make sure there is enough space to accomodate newer levels
+    // if its only a partial merge, then make sure enough new space
+    int new_depth = max(new_lsm->max_level+1, depth + 1);
+    level *new_levels = (level *)calloc(sizeof(level),new_depth);
     if (new_lsm->levels == NULL)
     {
         printf("Error6: malloc failed in create\n");
@@ -112,10 +123,10 @@ void copy_tree(lsmtree *new_lsm, level *src_levels, int depth)
     // copy levels
     for (int i = 0; i <= depth; i++)
     {
-        printf("\nCopying Level %d, lvl %d: %d/%d, fp: %s\n", i, src_levels[i].level, src_levels[i].count, src_levels[i].size, src_levels[i].filepath);
         copy_level(&(new_lsm->levels[i]), &(src_levels[i]), new_lsm->max_level, i);
     }
     new_lsm->max_level = depth;
+    free(src_levels);
 }
 
 // insert a key-value pair into the LSM tree
@@ -174,18 +185,17 @@ void *init_flush_thread(void *args)
     int depth = 1;
     lsmtree const *original_lsm = lsm;
     level *new_levels = (level *)malloc(sizeof(level));
+    // level **c_levels = &new_levels;
     memcpy(&new_levels[0], &lsm->levels[0], sizeof(level));
     flush_to_level(&new_levels, original_lsm, &depth);
-
     // lock read mutex as we switch over lsm tree
     pthread_mutex_lock(&read_mutex);
-    printf("new depth %d\n", depth);
     for (int i = 0; i <= depth; i++)
     {
-        printf("ZOINS Level %d: %d/%d, fp: %s\n", i, new_levels[i].count, new_levels[i].size, new_levels[i].filepath);
+            printf("Level %d, lvl %d, %d/%d, fp: %s\n", i, new_levels[i].level, new_levels[i].count, new_levels[i].size, new_levels[i].filepath);
     }
     copy_tree(lsm, new_levels, depth);
-
+    print_tree("\ncurrent tree",lsm);
     // unlock read mutex
     pthread_mutex_unlock(&read_mutex);
 
@@ -237,7 +247,6 @@ void flush_to_level(level **c_levels, lsmtree const *lsm, int *depth)
 
     // check if current_path is empty (first time at this level)
     FILE *fp_current_layer = NULL;
-    printf("trying to open %d\n", current_path[0]);
     if (current_path[0] != '\0')
     {
 
@@ -321,17 +330,12 @@ void flush_to_level(level **c_levels, lsmtree const *lsm, int *depth)
     free(buffer);
 
     // check if new level is full
-    printf("\nLevel %d: %d/%d, fp: %s\n", deeper_level, new_levels[deeper_level].count, new_levels[deeper_level].size, new_levels[deeper_level].filepath);
+    printf("\nAQUI Level %d: %d/%d, fp: %s\n", deeper_level, new_levels[deeper_level].count, new_levels[deeper_level].size, new_levels[deeper_level].filepath);
 
     if (new_levels[deeper_level].count == new_levels[deeper_level].size)
     {
         *depth = *depth + 1;
-        flush_to_level(&new_levels, lsm, depth);
-    }
-
-    for (int i = 0; i <= *depth; i++)
-    {
-        printf("\nFINALE Level %d: %d/%d, fp: %s\n", i, new_levels[i].count, new_levels[i].size, new_levels[i].filepath);
+        flush_to_level(c_levels, lsm, depth);
     }
 }
 
@@ -579,10 +583,10 @@ void build_fence_pointers(level *level, node *buffer, int buffer_size)
     {
         new_fence_pointers[i].key = buffer[i * BLOCK_SIZE_NODES].key;
     }
-    if (level->fence_pointer_count > 0)
-    {
-        free(level->fence_pointers);
-    }
+    // if (level->fence_pointer_count > 0)
+    // {
+    //     free(level->fence_pointers);
+    // }
     level->fence_pointers = new_fence_pointers;
     level->fence_pointer_count = fence_pointer_count;
 }

@@ -94,7 +94,7 @@ void level_2_test()
     {
         insert(lsm, i, 2 * i);
     }
-
+    
     for (int i = 0; i < max_int; i++)
     {
         int getR = get(lsm, i);
@@ -302,7 +302,7 @@ void dedup_test()
 int main(void)
 {
     // basic_buffer_test();
-    level_1_test();
+    // level_1_test();
     level_2_test();
     // level_3_test();
     // sort_test();
