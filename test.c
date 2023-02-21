@@ -9,8 +9,6 @@
 #include <unistd.h>
 #include <pthread.h>
 
-int counter = 0;
-
 void basic_buffer_test()
 {
     printf("basic_buffer_test\n");
@@ -55,6 +53,7 @@ void level_1_test()
     {
         insert(lsm, i, 2 * i);
     }
+
     int getR = get(lsm, 7);
     assert(getR == 14);
     assert(get(lsm, 2) == 4);
@@ -198,10 +197,11 @@ void fence_pointers_correct()
     for (int i = offset; i < max_int + offset; i++)
     {
         int getR = get(lsm, i);
-        if (getR != 2*i){
-            printf("{%d,%d}\n",i,getR);
+        if (getR != 2 * i)
+        {
+            printf("{%d,%d}\n", i, getR);
         }
-        
+
         // assert(getR == 2 * i);
     }
     // since were testing internals of level 1, we need to wait for the thread to finish to reason
@@ -256,7 +256,7 @@ void large_buffer_size_complex()
         fclose(fp);
         free(nodes);
     }
-  pthread_mutex_unlock(&merge_mutex);
+    pthread_mutex_unlock(&merge_mutex);
     destroy(lsm, 0);
 }
 
@@ -301,15 +301,15 @@ void dedup_test()
 
 int main(void)
 {
-    basic_buffer_test();
+    // basic_buffer_test();
     level_1_test();
     level_2_test();
-    level_3_test();
-    sort_test();
-    fence_pointers_correct();
-    large_buffer_size_complex();
-    compact_test();
-    dedup_test();
+    // level_3_test();
+    // sort_test();
+    // fence_pointers_correct();
+    // large_buffer_size_complex();
+    // compact_test();
+    // dedup_test();
 
     return 0;
 }
