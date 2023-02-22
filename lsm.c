@@ -226,10 +226,10 @@ void flush_to_level(level **c_levels, lsmtree const *lsm, int *depth)
     FILE *fp_current_layer = NULL;
     if (current_path[0] != '\0')
     {
-
+        // print_tree("la",(lsmtree *)lsm);
         fp_current_layer = fopen(current_path, "rb");
-        printf("trying to open %s\n", current_path);
-        print_tree("go",(lsmtree *)lsm);
+        // printf("trying to open %s\n", current_path);
+        // print_tree("go",(lsmtree *)lsm);
         NULL_pointer_check(fp_old_flush,"Error2: fopen failed in flush_to_level");
     }
     char new_path[64];
