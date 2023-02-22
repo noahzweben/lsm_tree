@@ -199,8 +199,8 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
     }
 
     // get filepaths
-    char current_path[64];
-    strcpy(current_path, new_levels[deeper_level].filepath);
+    char deep_path[64];
+    strcpy(deep_path, new_levels[deeper_level].filepath);
     char fresh_path[64];
     strcpy(fresh_path, new_levels[fresh_level].filepath);
 
@@ -213,12 +213,12 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
         NULL_pointer_check(fp_old_flush,"Error1: fopen failed in flush_to_level");
     }
 
-    // check if current_path is empty (first time at this level)
-    FILE *fp_current_layer = NULL;
-    if (current_path[0] != '\0')
+    // check if deep_path is empty (first time at this level)
+    FILE *fp_deep_layer = NULL;
+    if (deep_path[0] != '\0')
     {
-        fp_current_layer = fopen(current_path, "rb");
-        NULL_pointer_check(fp_current_layer,"Error2: fopen failed in flush_to_level");
+        fp_deep_layer = fopen(deep_path, "rb");
+        NULL_pointer_check(fp_deep_layer,"Error2: fopen failed in flush_to_level");
     }
 
     // create a new file to store the merged layers
@@ -233,9 +233,9 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
 
     // read deeper layer into buffer if it exists
     // (it may not if this is our first time at this layer)
-    if (fp_current_layer != NULL)
+    if (fp_deep_layer != NULL)
     {
-        fread(buffer, sizeof(node), new_levels[deeper_level].count, fp_current_layer);
+        fread(buffer, sizeof(node), new_levels[deeper_level].count, fp_deep_layer);
     }
     
     // Read fresher level into buffer
@@ -288,9 +288,9 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
         .count = 0;
 
 
-    if (fp_current_layer != NULL)
+    if (fp_deep_layer != NULL)
     {
-        fclose(fp_current_layer);
+        fclose(fp_deep_layer);
     }
     fclose(fp_temp);
     free(buffer);
