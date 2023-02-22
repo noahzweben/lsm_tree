@@ -103,29 +103,27 @@ void copy_level(level *dest_level, level *src_level, int dest_max_level, int cop
 }
 
 // // make a shadow tree we perform the merge on
-void copy_tree(lsmtree *new_lsm, level *src_levels, int depth)
+void copy_tree(lsmtree *dest_lsm, level *src_levels, int depth)
 {
-    printf("zoinks %d\n", depth);
     // reallocate levels in new lsm
     // make sure there is enough space to accomodate newer levels
     // if its only a partial merge, then make sure enough new space
-    int new_depth = max(new_lsm->max_level+1, depth + 1);
-    level *new_levels = (level *)calloc(sizeof(level),new_depth);
-    if (new_lsm->levels == NULL)
+    int new_depth = max(dest_lsm->max_level, depth);
+    level *new_levels = (level *)calloc(sizeof(level),new_depth + 1);
+    if (dest_lsm->levels == NULL)
     {
         printf("Error6: malloc failed in create\n");
         exit(1);
     }
-    memcpy(new_levels, new_lsm->levels, sizeof(level) * (new_lsm->max_level + 1));
-    free(new_lsm->levels);
-    new_lsm->levels = new_levels;
-
+    memcpy(new_levels, dest_lsm->levels, sizeof(level) * (dest_lsm->max_level + 1));
+    free(dest_lsm->levels);
+    dest_lsm->levels = new_levels;
     // copy levels
     for (int i = 0; i <= depth; i++)
     {
-        copy_level(&(new_lsm->levels[i]), &(src_levels[i]), new_lsm->max_level, i);
+        copy_level(&(dest_lsm->levels[i]), &(src_levels[i]), dest_lsm->max_level, i);
     }
-    new_lsm->max_level = depth;
+    dest_lsm->max_level = new_depth;
     free(src_levels);
 }
 
@@ -165,7 +163,6 @@ void insert(lsmtree *lsm, keyType key, valType value)
 void *init_flush_thread(void *args)
 {
     pthread_mutex_lock(&merge_mutex);
-    printf("starting merge\n");
     // struct flush_args *flush_args = (struct flush_args *)args;
     lsmtree *lsm = (lsmtree *)args;
     // free(flush_args);
@@ -190,12 +187,7 @@ void *init_flush_thread(void *args)
     flush_to_level(&new_levels, original_lsm, &depth);
     // lock read mutex as we switch over lsm tree
     pthread_mutex_lock(&read_mutex);
-    for (int i = 0; i <= depth; i++)
-    {
-            printf("Level %d, lvl %d, %d/%d, fp: %s\n", i, new_levels[i].level, new_levels[i].count, new_levels[i].size, new_levels[i].filepath);
-    }
     copy_tree(lsm, new_levels, depth);
-    print_tree("\ncurrent tree",lsm);
     // unlock read mutex
     pthread_mutex_unlock(&read_mutex);
 
@@ -216,9 +208,6 @@ void flush_to_level(level **c_levels, lsmtree const *lsm, int *depth)
     // realloc using depth
     *c_levels = (level *)realloc(*c_levels, sizeof(level) * (deeper_level + 1));
     level *new_levels = *c_levels;
-
-    printf("AT LEVEL %d\n", deeper_level);
-    printf("Shallower Level %d, lvl %d, %d/%d, fp: %s\n", fresh_level, new_levels->level, new_levels->count, new_levels->size, new_levels->filepath);
     reset_level(&(new_levels[deeper_level]), deeper_level, new_levels[fresh_level].size * 10);
     if (deeper_level <= lsm->max_level)
     {
@@ -330,8 +319,6 @@ void flush_to_level(level **c_levels, lsmtree const *lsm, int *depth)
     free(buffer);
 
     // check if new level is full
-    printf("\nAQUI Level %d: %d/%d, fp: %s\n", deeper_level, new_levels[deeper_level].count, new_levels[deeper_level].size, new_levels[deeper_level].filepath);
-
     if (new_levels[deeper_level].count == new_levels[deeper_level].size)
     {
         *depth = *depth + 1;
