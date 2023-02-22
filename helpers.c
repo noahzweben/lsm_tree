@@ -84,3 +84,10 @@ void merge_sort(node *buffer, int buffer_size)
 
     free(new_buffer);
 }
+
+void NULL_pointer_check(void *pointer, char * msg){
+    if (pointer == NULL){
+        printf("%s\n", msg);
+        exit(1);
+    }
+}
