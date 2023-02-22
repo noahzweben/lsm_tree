@@ -181,7 +181,8 @@ void *init_flush_thread(void *args)
 
     int depth = 1;
     lsmtree const *original_lsm = lsm;
-    level *new_levels = (level *)malloc(sizeof(level) * (lsm->max_level+1));
+
+    level *new_levels = (level *)malloc(sizeof(level) * (1+lsm->max_level));
     // level **c_levels = &new_levels;
     memcpy(&new_levels[0], &lsm->levels[0], sizeof(level));
     flush_to_level(&new_levels, original_lsm, &depth);
@@ -206,12 +207,10 @@ void flush_to_level(level **c_levels, lsmtree const *lsm, int *depth)
     int deeper_level = *depth;
     int fresh_level = deeper_level - 1;
     // realloc using depth
-    printf("where\n");
     if (deeper_level > lsm->max_level){
         // grow the new_level_slice
         *c_levels = (level *)realloc(*c_levels, sizeof(level) * (deeper_level + 1));
     }   
-    printf("here\n");
     level *new_levels = *c_levels;
     reset_level(&(new_levels[deeper_level]), deeper_level, new_levels[fresh_level].size * 10);
     if (deeper_level <= lsm->max_level)
