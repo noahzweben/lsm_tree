@@ -53,7 +53,7 @@ int main(int argc, char **argv)
   // if command line arg writes is passed, end program
   if (argc > 1 && strcmp(argv[1], "writes") == 0)
   {
-    destroy(lsm, 0);
+    destroy(lsm);
     free(random_array);
     return 0;
   }
@@ -71,7 +71,7 @@ int main(int argc, char **argv)
   secs = (double)(stop.tv_usec - start.tv_usec) / 1000000 + (double)(stop.tv_sec - start.tv_sec);
   printf("%d gets took %f seconds\n", num_inserts, secs);
 
-  destroy(lsm, 0);
+  destroy(lsm);
   free(random_array);
   return 0;
 }
