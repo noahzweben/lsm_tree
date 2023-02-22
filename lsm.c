@@ -354,8 +354,12 @@ int get(lsmtree *lsm, keyType key)
 
 int get_from_disk(lsmtree *lsm, keyType key, int get_level)
 {
-    int value = -1;
     // open File fp for reading
+    if (lsm->levels[get_level].filepath[0] == '\0'){
+     return -1;   
+    }
+    
+    int value = -1;
     FILE *fp = fopen(lsm->levels[get_level].filepath, "r");
     
     // TODO sometimes erroring
