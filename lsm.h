@@ -44,7 +44,7 @@ typedef struct lsmtree
 
 lsmtree *create(int buffer_size);
 void cleanup_copy(lsmtree *lsm);
-void destroy(lsmtree *lsm, int keep_files);
+void destroy(lsmtree *lsm);
 void insert(lsmtree *lsm, keyType key, valType value);
 void reset_level(level *level, int level_num, int level_size);
 void flush_to_level(level **new_levels, lsmtree const *original_lsm, int *level);

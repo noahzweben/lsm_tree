@@ -41,7 +41,7 @@ void basic_buffer_test()
     // newer write should be returned from buffer
     insert(lsm, 5, 11);
     assert(get(lsm, 5) == 11);
-    destroy(lsm, 0);
+    destroy(lsm);
 }
 
 void level_1_test()
@@ -80,7 +80,7 @@ void level_1_test()
     fclose(fp);
     free(nodes);
     pthread_mutex_unlock(&merge_mutex);
-    destroy(lsm, 0);
+    destroy(lsm);
 }
 
 void level_2_test()
@@ -110,7 +110,7 @@ void level_2_test()
     assert(lsm->levels[2].count == 200);
     pthread_mutex_unlock(&merge_mutex);
 
-    destroy(lsm, 0);
+    destroy(lsm);
 }
 
 void level_3_test()
@@ -132,7 +132,7 @@ void level_3_test()
         assert(getR == 2 * i);
     }
     assert(get(lsm, 511) == -1);
-    destroy(lsm, 0);
+    destroy(lsm);
 }
 
 void sort_test()
@@ -179,7 +179,7 @@ void sort_test()
         assert(get(lsm, random_array[i]) == 2 * random_array[i]);
     }
     pthread_mutex_unlock(&merge_mutex);
-    destroy(lsm, 0);
+    destroy(lsm);
 }
 
 void fence_pointers_correct()
@@ -212,7 +212,7 @@ void fence_pointers_correct()
     assert(lsm->levels[1].fence_pointers[0].key == 0 + offset);
     assert(lsm->levels[1].fence_pointers[1].key == 512 + offset);
     pthread_mutex_unlock(&merge_mutex);
-    destroy(lsm, 0);
+    destroy(lsm);
 }
 
 void large_buffer_size_complex()
@@ -257,7 +257,7 @@ void large_buffer_size_complex()
         free(nodes);
     }
     pthread_mutex_unlock(&merge_mutex);
-    destroy(lsm, 0);
+    destroy(lsm);
 }
 
 void compact_test()
@@ -296,7 +296,7 @@ void dedup_test()
     // ensure that the value is the last value inserted
     int getR = get(lsm, 1);
     assert(getR == 399);
-    destroy(lsm, 0);
+    destroy(lsm);
 }
 
 int main(void)
@@ -310,6 +310,6 @@ int main(void)
     large_buffer_size_complex();
     compact_test();
     dedup_test();
-  
+
     return 0;
 }
