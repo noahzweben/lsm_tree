@@ -7,11 +7,11 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#define max(a,b) \
-   ({ __typeof__ (a) _a = (a); \
+#define max(a, b) \
+    ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
      _a > _b ? _a : _b; })
-     
+
 int BLOCK_SIZE_NODES = 4096 / sizeof(node);
 // merge mutex
 pthread_mutex_t merge_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -23,21 +23,21 @@ pthread_mutex_t read_mutex = PTHREAD_MUTEX_INITIALIZER;
 lsmtree *create(int buffer_size)
 {
     lsmtree *lsm = (lsmtree *)malloc(sizeof(lsmtree));
-    NULL_pointer_check(lsm,"Error1: malloc failed in create");
-    
+    NULL_pointer_check(lsm, "Error1: malloc failed in create");
+
     lsm->max_level = 0;
     lsm->levels = (level *)malloc(sizeof(level) * (lsm->max_level + 1));
-    NULL_pointer_check(lsm->levels,"Error2: malloc failed in create");
+    NULL_pointer_check(lsm->levels, "Error2: malloc failed in create");
 
     // create memtable buffer
     lsm->memtable = (node *)malloc(sizeof(node) * buffer_size);
-    NULL_pointer_check(lsm->memtable,"Error3: malloc failed in create");
+    NULL_pointer_check(lsm->memtable, "Error3: malloc failed in create");
 
     // where full memtable gets stored so writes can continue
     lsm->flush_buffer = (node *)malloc(sizeof(node) * buffer_size);
-    NULL_pointer_check(lsm->flush_buffer,"Error4: malloc failed in create");
+    NULL_pointer_check(lsm->flush_buffer, "Error4: malloc failed in create");
     lsm->memtable_level = (level *)malloc(sizeof(level));
-    NULL_pointer_check(lsm->memtable_level,"Error5: malloc failed in create");
+    NULL_pointer_check(lsm->memtable_level, "Error5: malloc failed in create");
 
     // set metadata for level
     reset_level(lsm->memtable_level, 0, buffer_size);
@@ -69,7 +69,6 @@ void copy_level(level *dest_level, level *src_level, int dest_max_level, int cop
     if (dest_level->filepath[0] != '\0' /*TODO RM && strcmp(dest_level->filepath, src_level->filepath) != 0*/)
     {
         remove(dest_level->filepath);
-
     }
     // copy level
     memcpy(dest_level, src_level, sizeof(level));
@@ -89,8 +88,8 @@ void copy_tree(lsmtree *dest_lsm, level *src_levels, int depth)
     // make sure there is enough space to accomodate newer levels
     // if its only a partial merge, then make sure enough new space
     int new_depth = max(dest_lsm->max_level, depth);
-    level *new_levels = (level *)calloc(sizeof(level),new_depth + 1);
-    NULL_pointer_check(new_levels,"Error1: malloc failed in copy_tree");
+    level *new_levels = (level *)calloc(sizeof(level), new_depth + 1);
+    NULL_pointer_check(new_levels, "Error1: malloc failed in copy_tree");
     memcpy(new_levels, dest_lsm->levels, sizeof(level) * (dest_lsm->max_level + 1));
     free(dest_lsm->levels);
     dest_lsm->levels = new_levels;
@@ -114,7 +113,7 @@ void insert(lsmtree *lsm, keyType key, valType value)
     }
 
     // create new node on the stack
-    node n = {key, value};
+    node n = {.delete = 0, .key = key, .value = value};
     lsm->memtable[lsm->memtable_level->count] = n;
     // if we do the increment after inserting the node, we can read
     // in a threadsafe manner. Worse case scenario if a read starts before the increment,
@@ -154,14 +153,13 @@ void *init_flush_thread(void *args)
     // create a shadow copy of levels where merge will happen
     // when merge is done, we will copy over the new levels to lsm
     int depth = 1;
-    level *new_levels = (level *)malloc(sizeof(level) * (1+lsm->max_level));
+    level *new_levels = (level *)malloc(sizeof(level) * (1 + lsm->max_level));
     memcpy(&new_levels[0], &lsm->levels[0], sizeof(level));
 
-    // when this function is complete, new_levels will be set 
-    // with the merge files and depth will be set to the 
+    // when this function is complete, new_levels will be set
+    // with the merge files and depth will be set to the
     // number of layers merge
     flush_to_level(&new_levels, lsm, &depth);
-    
 
     // we now copy over the new levels to the lsm tree
     // while this is happening the tree is in an inconsistent state
@@ -170,7 +168,6 @@ void *init_flush_thread(void *args)
     pthread_mutex_lock(&read_mutex);
     copy_tree(lsm, new_levels, depth);
     pthread_mutex_unlock(&read_mutex);
-
 
     // release merge mutex
     pthread_mutex_unlock(&merge_mutex);
@@ -182,15 +179,16 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
 {
     int deeper_level = *depth;
     int fresh_level = deeper_level - 1;
-    
+
     // realloc using depth - if we need to create a new layer, we must allocate
     // additional space for it in the layers object
-    if (deeper_level > lsm->max_level){
+    if (deeper_level > lsm->max_level)
+    {
         *new_levels_wrapper = (level *)realloc(*new_levels_wrapper, sizeof(level) * (deeper_level + 1));
-    }   
+    }
 
     level *new_levels = *new_levels_wrapper;
-    
+
     // initialize and copy over layer metadata (one at a time as needed to avoid additional work)
     reset_level(&(new_levels[deeper_level]), deeper_level, new_levels[fresh_level].size * 10);
     if (deeper_level <= lsm->max_level)
@@ -210,7 +208,7 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
     if (fresh_level > 0)
     {
         fp_fresher_layer = fopen(new_levels[fresh_level].filepath, "rb");
-        NULL_pointer_check(fp_fresher_layer,"Error1: fopen failed in flush_to_level");
+        NULL_pointer_check(fp_fresher_layer, "Error1: fopen failed in flush_to_level");
     }
 
     FILE *fp_deep_layer = NULL;
@@ -218,10 +216,11 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
     if (deep_path[0] != '\0')
     {
         fp_deep_layer = fopen(deep_path, "rb");
-        if (fp_deep_layer == NULL){
+        if (fp_deep_layer == NULL)
+        {
             print_tree("help", (lsmtree *)lsm);
         }
-        NULL_pointer_check(fp_deep_layer,"Error2: fopen failed in flush_to_level");
+        NULL_pointer_check(fp_deep_layer, "Error2: fopen failed in flush_to_level");
     }
 
     // create a new file to store the merged layers
@@ -232,7 +231,7 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
     // create buffer that can accomodate both levels
     int buffer_size = new_levels[fresh_level].count + new_levels[deeper_level].count;
     node *buffer = (node *)malloc(sizeof(node) * buffer_size);
-    NULL_pointer_check(buffer,"Error3: malloc failed in flush_to_level");
+    NULL_pointer_check(buffer, "Error3: malloc failed in flush_to_level");
 
     // read deeper layer into buffer if it exists
     // (it may not if this is our first time at this layer)
@@ -240,7 +239,7 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
     {
         fread(buffer, sizeof(node), new_levels[deeper_level].count, fp_deep_layer);
     }
-    
+
     // Read fresher level into buffer
     // if fresher_level == 0, this means we need to pull from the flush_buffer
     // otherwise pull from disk
@@ -253,19 +252,18 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
         fread(buffer + new_levels[deeper_level].count, sizeof(node), new_levels[fresh_level].count, fp_fresher_layer);
     }
 
-    //BUILD THE NEW LAYER + INDECES
+    // BUILD THE NEW LAYER + INDECES
 
     // returns sorted and compacted buffer and updated buffer size
     compact(buffer, &buffer_size);
     // write buffer to new level
     fwrite(buffer, sizeof(node), buffer_size, fp_temp);
-      // Store new fileapth you created
+    // Store new fileapth you created
     strcpy(new_levels[deeper_level].filepath, new_path);
     build_fence_pointers(&(new_levels[deeper_level]), buffer, buffer_size);
     // add to new level count
     new_levels[deeper_level]
         .count = buffer_size;
-
 
     // CLEANUP OF OLD RESOURCES
 
@@ -283,13 +281,11 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
         free(new_levels[fresh_level].fence_pointers);
         new_levels[fresh_level].fence_pointers = NULL;
         new_levels[fresh_level].fence_pointer_count = 0;
-
     }
 
     // update old level count
     new_levels[fresh_level]
         .count = 0;
-
 
     if (fp_deep_layer != NULL)
     {
@@ -300,14 +296,12 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
 
     // CHECK IF NEW LAYER IS FULL
 
-
     if (new_levels[deeper_level].count == new_levels[deeper_level].size)
     {
         *depth = *depth + 1;
         flush_to_level(new_levels_wrapper, lsm, depth);
     }
 }
-
 
 // get a value
 int get(lsmtree *lsm, keyType key)
@@ -355,23 +349,24 @@ int get(lsmtree *lsm, keyType key)
 int get_from_disk(lsmtree *lsm, keyType key, int get_level)
 {
     // open File fp for reading
-    if (lsm->levels[get_level].filepath[0] == '\0'){
-     return -1;   
+    if (lsm->levels[get_level].filepath[0] == '\0')
+    {
+        return -1;
     }
-    
+
     int value = -1;
     FILE *fp = fopen(lsm->levels[get_level].filepath, "r");
-    
+
     // TODO sometimes erroring
-    if (fp == NULL){
+    if (fp == NULL)
+    {
         print_tree("aqui", lsm);
     }
     NULL_pointer_check(fp, "ERROR: get_from_disk");
 
     // copy over buffer_count elements to fp
     node *nodes = (node *)malloc(sizeof(node) * BLOCK_SIZE_NODES);
-    NULL_pointer_check(nodes,"Error: malloc failed in get_from_disk");
-
+    NULL_pointer_check(nodes, "Error: malloc failed in get_from_disk");
 
     int fence_pointer_index = 0;
     // // loop through fence pointers
@@ -457,15 +452,14 @@ void compact(node *buffer, int *buffer_size)
 
 void destroy(lsmtree *lsm)
 {
-    
+
     pthread_mutex_lock(&merge_mutex);
     pthread_mutex_lock(&read_mutex);
-    
 
     // loop through levels and remove filepath
     for (int i = 1; i <= lsm->max_level; i++)
     {
-       
+
         remove(lsm->levels[i].filepath);
         if (lsm->levels[i].fence_pointer_count > 0)
         {
@@ -480,7 +474,6 @@ void destroy(lsmtree *lsm)
     free(lsm);
     pthread_mutex_unlock(&merge_mutex);
     pthread_mutex_unlock(&read_mutex);
-
 }
 
 void build_fence_pointers(level *level, node *buffer, int buffer_size)

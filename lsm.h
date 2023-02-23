@@ -12,6 +12,7 @@ extern pthread_mutex_t write_mutex;
 
 typedef struct node
 {
+    int delete;
     keyType key;
     valType value;
 } node;

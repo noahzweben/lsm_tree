@@ -32,7 +32,7 @@ int main(int argc, char **argv)
   node *random_array = (node *)malloc(sizeof(node) * num_inserts);
   for (int i = 0; i < num_inserts; i++)
   {
-    random_array[i] = (node){i, rand()};
+    random_array[i] = (node){0, i, rand()};
   }
   shuffle_list(random_array, num_inserts);
 

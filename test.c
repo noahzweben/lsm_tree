@@ -210,7 +210,7 @@ void fence_pointers_correct()
     sleep(1);
     pthread_mutex_lock(&merge_mutex);
     assert(lsm->levels[1].fence_pointers[0].key == 0 + offset);
-    assert(lsm->levels[1].fence_pointers[1].key == 512 + offset);
+    assert(lsm->levels[1].fence_pointers[1].key == BLOCK_SIZE_NODES + offset);
     pthread_mutex_unlock(&merge_mutex);
     destroy(lsm);
 }
@@ -264,15 +264,15 @@ void compact_test()
 {
     printf("compact_test\n");
     node buffer[10] = {
-        {1, 2},
-        {2, 4},
-        {3, 0},
-        {4, 8},
-        {3, 9},
-        {6, 27},
-        {7, 14},
-        {8, 16},
-        {6, 11},
+        {0, 1, 2},
+        {0, 2, 4},
+        {0, 3, 0},
+        {0, 4, 8},
+        {0, 3, 9},
+        {0, 6, 27},
+        {0, 7, 14},
+        {0, 8, 16},
+        {0, 6, 11},
     };
     int buffer_size = 10;
     // result should be sorted by key and duplicates removed with later values kept ({3,9} and {6,11})
