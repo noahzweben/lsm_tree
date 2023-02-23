@@ -1,6 +1,6 @@
 CC=gcc -std=c99
-CFLAGS = -ggdb3 -W -Wall -Wextra -Werror -O3
-LDFLAGS =
+CFLAGS = -ggdb3 -W -Wall -Wextra -Werror -pthread -O3
+LDFLAGS = -pthread
 LIBS = 
 
 # if on linux add -luiid to LIBS

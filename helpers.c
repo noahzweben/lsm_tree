@@ -3,6 +3,43 @@
 #include <stdlib.h>
 #include <uuid/uuid.h>
 
+
+void print_tree(char *msg, lsmtree *lsm)
+{
+    printf("%s\n", msg);
+    // loop through memtalbe and print
+    printf("Memtable: ");
+    for (int i = 0; i < lsm->memtable_level->count; i++)
+    {
+        printf("{%d,%d}, ", lsm->memtable[i].key, lsm->memtable[i].value);
+    }
+
+    // loop through buffer and print
+    printf("Flush Buffer: ");
+    for (int i = 0; i < lsm->levels[0].count; i++)
+    {
+        printf("{%d,%d}, ", lsm->flush_buffer[i].key, lsm->flush_buffer[i].value);
+    }
+    // loop through levels and print level struct
+    for (int i = 0; i <= lsm->max_level; i++)
+    {
+        printf("\nLevel %d: %d/%d, fp: %s\n", lsm->levels[i].level, lsm->levels[i].count, lsm->levels[i].size, lsm->levels[i].filepath);
+        // print fence pointers
+        if (i > 0)
+        {
+            for (int j = 0; j < lsm->levels[i].fence_pointer_count; j++)
+            {
+                fence_pointer fp = lsm->levels[i].fence_pointers[j];
+                printf("fp %d, ", fp.key);
+            }
+            printf("\n");
+        }
+    }
+
+    printf("\n");
+}
+
+
 void set_filename(char *filename)
 {
     uuid_t uuid;
@@ -83,4 +120,11 @@ void merge_sort(node *buffer, int buffer_size)
     merge_sort_recursive(new_buffer, buffer, buffer_size);
 
     free(new_buffer);
+}
+
+void NULL_pointer_check(void *pointer, char * msg){
+    if (pointer == NULL){
+        printf("%s\n", msg);
+        exit(1);
+    }
 }
