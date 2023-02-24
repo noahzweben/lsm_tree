@@ -327,6 +327,11 @@ int get(lsmtree *lsm, keyType key)
         if (lsm->memtable[i].key == key)
         {
             int value = lsm->memtable[i].value;
+            // if delete is true then return -1
+            if (lsm->memtable[i].delete == true)
+            {
+                value = -2;
+            }
             pthread_mutex_unlock(&read_mutex);
             return value;
         }
@@ -338,6 +343,10 @@ int get(lsmtree *lsm, keyType key)
         if (lsm->flush_buffer[i].key == key)
         {
             int value = lsm->flush_buffer[i].value;
+            if (lsm->flush_buffer[i].delete == true)
+            {
+                value = -2;
+            }
             pthread_mutex_unlock(&read_mutex);
             return value;
         }
@@ -422,6 +431,10 @@ int get_from_disk(lsmtree *lsm, keyType key, int get_level)
         if (nodes[mid].key == key)
         {
             value = nodes[mid].value;
+            if (nodes[mid].delete == true)
+            {
+                value = -2;
+            }
             break;
         }
         else if (nodes[mid].key < key)
@@ -443,13 +456,17 @@ void compact(node *buffer, int *buffer_size)
     // sort buffer
     merge_sort(buffer, *buffer_size);
     // loop through and remove duplicates (keep last value)
+    // if node.delete == true, remove all other duplicate nodes (just keep delete node)
     int i = 0;
     int j = 1;
     while (j < *buffer_size)
     {
         if (buffer[i].key == buffer[j].key)
         {
-            buffer[i].value = buffer[j].value;
+            if (buffer[j].delete == true)
+            {
+                buffer[i].delete = true;
+            }
             j++;
         }
         else
@@ -457,6 +474,7 @@ void compact(node *buffer, int *buffer_size)
             i++;
             buffer[i].key = buffer[j].key;
             buffer[i].value = buffer[j].value;
+            buffer[i].delete = buffer[j].delete;
             j++;
         }
     }
@@ -507,10 +525,6 @@ void build_fence_pointers(level *level, node *buffer, int buffer_size)
     {
         new_fence_pointers[i].key = buffer[i * BLOCK_SIZE_NODES].key;
     }
-    // if (level->fence_pointer_count > 0)
-    // {
-    //     free(level->fence_pointers);
-    // }
     level->fence_pointers = new_fence_pointers;
     level->fence_pointer_count = fence_pointer_count;
 }

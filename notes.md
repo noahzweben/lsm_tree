@@ -12,3 +12,4 @@ sudo yum install libuuid libuuid-devel
 * within a buffer there will only every be one key of a variable
 * if that key is a delete key, stop the search...
 * change search to use a node pointer..., so can keep as NULL if not found
+* make sure destroy kills all queued threads

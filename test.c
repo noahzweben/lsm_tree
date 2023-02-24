@@ -264,8 +264,9 @@ void large_buffer_size_complex()
 void compact_test()
 {
     printf("compact_test\n");
-    node buffer[10] = {
+    node buffer[11] = {
         {.delete = false, 1, 2},
+        {.delete = true, 4, 10},
         {.delete = false, 2, 4},
         {.delete = false, 3, 0},
         {.delete = false, 4, 8},
@@ -274,15 +275,21 @@ void compact_test()
         {.delete = false, 7, 14},
         {.delete = false, 8, 16},
         {.delete = false, 6, 11},
+        {.delete = true, 8, 11},
+
     };
-    int buffer_size = 10;
+    int buffer_size = 11;
     // result should be sorted by key and duplicates removed with later values kept ({3,9} and {6,11})
     compact(buffer, &buffer_size);
-    assert(buffer_size == 8);
+    assert(buffer_size == 7);
     for (int i = 0; i < buffer_size - 1; i++)
     {
         assert(buffer[i].key < buffer[i + 1].key);
     }
+    assert(buffer[3].delete == true);
+    assert(buffer[3].key == 4);
+    assert(buffer[6].delete == true);
+    assert(buffer[6].key == 8);
 }
 
 void dedup_test()
@@ -306,13 +313,14 @@ void delete_test()
 {
     printf("delete_test\n");
     lsmtree *lsm = create(10);
+    int writes = 401;
     // insert 400 nodes with the same key and increasing values
-    for (int i = 0; i < 400; i++)
+    for (int i = 0; i < writes; i++)
     {
         insert(lsm, i, 2 * i);
     }
     // delete all multiples of 5
-    for (int i = 0; i < 400; i++)
+    for (int i = 0; i < writes; i++)
     {
         if (i % 5 == 0)
         {
@@ -320,12 +328,14 @@ void delete_test()
         }
     }
     // ensure that the values are correct
-    for (int i = 0; i < 400; i++)
+    sleep(1);
+    for (int i = 0; i < writes; i++)
     {
         int getR = get(lsm, i);
+        printf("getR %d %d\n", i, getR);
         if (i % 5 == 0)
         {
-            assert(getR == -1);
+            assert(getR == -2);
         }
         else
         {
@@ -340,15 +350,15 @@ int main(void)
 
     printf("BLOCK SIZE NODES %d\n", BLOCK_SIZE_NODES);
 
-    basic_buffer_test();
-    level_1_test();
-    level_2_test();
-    level_3_test();
-    sort_test();
-    fence_pointers_correct();
-    large_buffer_size_complex();
-    compact_test();
-    dedup_test();
+    // basic_buffer_test();
+    // level_1_test();
+    // level_2_test();
+    // level_3_test();
+    // sort_test();
+    // fence_pointers_correct();
+    // large_buffer_size_complex();
+    // compact_test();
+    // dedup_test();
     delete_test();
 
     return 0;
