@@ -47,6 +47,7 @@ lsmtree *create(int buffer_size);
 void cleanup_copy(lsmtree *lsm);
 void destroy(lsmtree *lsm);
 void insert(lsmtree *lsm, keyType key, valType value);
+void delete(lsmtree *lsm, keyType key);
 void reset_level(level *level, int level_num, int level_size);
 void flush_to_level(level **new_levels, lsmtree const *original_lsm, int *level);
 int get(lsmtree *lsm, keyType key);
