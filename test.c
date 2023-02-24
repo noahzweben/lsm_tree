@@ -62,7 +62,8 @@ void level_1_test()
     // since were testing level 1, we need to wait for the thread to finish to reason
     // about the internal state of the system
     // GETS should be available immediately
-    sleep(2);
+    sleep(1);
+    pthread_mutex_unlock(&merge_mutex);
     assert(lsm->memtable_level->count == 0);
     assert(lsm->levels[0].count == 0);
     assert(lsm->levels[1].count == 10);
