@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <math.h>
 #include "lsm.h"
+#include <stdbool.h>
 #include <string.h>
 
 void shuffle_list(node *random_array, int size)
@@ -32,7 +33,7 @@ int main(int argc, char **argv)
   node *random_array = (node *)malloc(sizeof(node) * num_inserts);
   for (int i = 0; i < num_inserts; i++)
   {
-    random_array[i] = (node){0, i, rand()};
+    random_array[i] = (node){.delete = false, i, rand()};
   }
   shuffle_list(random_array, num_inserts);
 

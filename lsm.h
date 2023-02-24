@@ -1,5 +1,5 @@
 #include <pthread.h>
-
+#include <stdbool.h>
 #ifndef CS265_LSM // This is a header guard. It prevents the header from being included more than once.
 #define CS265_LSM
 
@@ -12,7 +12,7 @@ extern pthread_mutex_t write_mutex;
 
 typedef struct node
 {
-    int delete;
+    bool delete;
     keyType key;
     valType value;
 } node;

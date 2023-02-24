@@ -6,6 +6,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #define max(a, b) \
     ({ __typeof__ (a) _a = (a); \
@@ -113,7 +114,7 @@ void insert(lsmtree *lsm, keyType key, valType value)
     }
 
     // create new node on the stack
-    node n = {.delete = 0, .key = key, .value = value};
+    node n = {.delete = false, .key = key, .value = value};
     lsm->memtable[lsm->memtable_level->count] = n;
     // if we do the increment after inserting the node, we can read
     // in a threadsafe manner. Worse case scenario if a read starts before the increment,
@@ -167,6 +168,7 @@ void *init_flush_thread(void *args)
     // writes are still ok as they only go to the memtable
     pthread_mutex_lock(&read_mutex);
     copy_tree(lsm, new_levels, depth);
+    // printf("max depth %d\n", lsm->max_level);
     pthread_mutex_unlock(&read_mutex);
 
     // release merge mutex

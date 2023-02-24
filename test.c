@@ -8,6 +8,7 @@
 #include "helpers.h"
 #include <unistd.h>
 #include <pthread.h>
+#include <stdbool.h>
 
 void basic_buffer_test()
 {
@@ -61,8 +62,7 @@ void level_1_test()
     // since were testing level 1, we need to wait for the thread to finish to reason
     // about the internal state of the system
     // GETS should be available immediately
-    sleep(1);
-    pthread_mutex_lock(&merge_mutex);
+    sleep(2);
     assert(lsm->memtable_level->count == 0);
     assert(lsm->levels[0].count == 0);
     assert(lsm->levels[1].count == 10);
@@ -264,15 +264,15 @@ void compact_test()
 {
     printf("compact_test\n");
     node buffer[10] = {
-        {0, 1, 2},
-        {0, 2, 4},
-        {0, 3, 0},
-        {0, 4, 8},
-        {0, 3, 9},
-        {0, 6, 27},
-        {0, 7, 14},
-        {0, 8, 16},
-        {0, 6, 11},
+        {.delete = false, 1, 2},
+        {.delete = false, 2, 4},
+        {.delete = false, 3, 0},
+        {.delete = false, 4, 8},
+        {.delete = false, 3, 9},
+        {.delete = false, 6, 27},
+        {.delete = false, 7, 14},
+        {.delete = false, 8, 16},
+        {.delete = false, 6, 11},
     };
     int buffer_size = 10;
     // result should be sorted by key and duplicates removed with later values kept ({3,9} and {6,11})
@@ -301,6 +301,11 @@ void dedup_test()
 
 int main(void)
 {
+    printf("size of bool %lu\n", sizeof(bool));
+    printf("size of node %lu\n", sizeof(node));
+
+    printf("BLOCK SIZE NODES %d\n", BLOCK_SIZE_NODES);
+
     basic_buffer_test();
     level_1_test();
     level_2_test();
