@@ -297,9 +297,42 @@ void dedup_test()
     // ensure that the value is the last value inserted
     int getR = get(lsm, 1);
     assert(getR == 399);
+    // make sure stuff is finished pre destory
+    sleep(1);
     destroy(lsm);
 }
 
+void delete_test()
+{
+    printf("delete_test\n");
+    lsmtree *lsm = create(10);
+    // insert 400 nodes with the same key and increasing values
+    for (int i = 0; i < 400; i++)
+    {
+        insert(lsm, i, 2 * i);
+    }
+    // delete all multiples of 5
+    for (int i = 0; i < 400; i++)
+    {
+        if (i % 5 == 0)
+        {
+            delete_key(lsm, i);
+        }
+    }
+    // ensure that the values are correct
+    for (int i = 0; i < 400; i++)
+    {
+        int getR = get(lsm, i);
+        if (i % 5 == 0)
+        {
+            assert(getR == -1);
+        }
+        else
+        {
+            assert(getR == 2 * i);
+        }
+    }
+}
 int main(void)
 {
     printf("size of bool %lu\n", sizeof(bool));
@@ -316,6 +349,7 @@ int main(void)
     large_buffer_size_complex();
     compact_test();
     dedup_test();
+    delete_test();
 
     return 0;
 }

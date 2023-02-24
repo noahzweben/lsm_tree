@@ -28,7 +28,8 @@ int main(int argc, char **argv)
   printf("Performing stress test.\n");
 
   int num_inserts = (int)(1 * pow(10, 6));
-  lsmtree *lsm = create(BLOCK_SIZE_NODES);
+  int NODE_NUM = 512;
+  lsmtree *lsm = create(NODE_NUM);
 
   node *random_array = (node *)malloc(sizeof(node) * num_inserts);
   for (int i = 0; i < num_inserts; i++)

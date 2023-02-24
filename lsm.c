@@ -67,7 +67,7 @@ void copy_level(level *dest_level, level *src_level, int dest_max_level, int cop
     }
 
     // check if destination has a filepath and is different from src filepath, remove it
-    if (dest_level->filepath[0] != '\0' /*TODO RM && strcmp(dest_level->filepath, src_level->filepath) != 0*/)
+    if (dest_level->filepath[0] != '\0')
     {
         remove(dest_level->filepath);
     }
@@ -102,8 +102,19 @@ void copy_tree(lsmtree *dest_lsm, level *src_levels, int depth)
     free(src_levels);
 }
 
-// insert a key-value pair into the LSM tree
 void insert(lsmtree *lsm, keyType key, valType value)
+{
+    node n = {.delete = false, .key = key, .value = value};
+    insert_node(lsm, n);
+}
+
+void delete_key(lsmtree *lsm, keyType key)
+{
+    node n = {.delete = true, .key = key, .value = 0};
+    insert_node(lsm, n);
+}
+// insert a key-value pair into the LSM tree
+void insert_node(lsmtree *lsm, node n)
 {
     // get write mutex
     pthread_mutex_lock(&write_mutex);
@@ -114,7 +125,6 @@ void insert(lsmtree *lsm, keyType key, valType value)
     }
 
     // create new node on the stack
-    node n = {.delete = false, .key = key, .value = value};
     lsm->memtable[lsm->memtable_level->count] = n;
     // if we do the increment after inserting the node, we can read
     // in a threadsafe manner. Worse case scenario if a read starts before the increment,
@@ -220,6 +230,7 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
         fp_deep_layer = fopen(deep_path, "rb");
         if (fp_deep_layer == NULL)
         {
+            printf("trying to open %s\n", deep_path);
             print_tree("help", (lsmtree *)lsm);
         }
         NULL_pointer_check(fp_deep_layer, "Error2: fopen failed in flush_to_level");
@@ -457,12 +468,16 @@ void destroy(lsmtree *lsm)
 
     pthread_mutex_lock(&merge_mutex);
     pthread_mutex_lock(&read_mutex);
-
+    pthread_mutex_lock(&write_mutex);
     // loop through levels and remove filepath
     for (int i = 1; i <= lsm->max_level; i++)
     {
 
-        remove(lsm->levels[i].filepath);
+        if (lsm->levels[i].filepath[0] != '\0')
+        {
+            remove(lsm->levels[i].filepath);
+        }
+
         if (lsm->levels[i].fence_pointer_count > 0)
         {
             free(lsm->levels[i].fence_pointers);
@@ -476,6 +491,8 @@ void destroy(lsmtree *lsm)
     free(lsm);
     pthread_mutex_unlock(&merge_mutex);
     pthread_mutex_unlock(&read_mutex);
+    pthread_mutex_unlock(&write_mutex);
+    // TODO make sure no rads/writes/merges start post destory or werird erros
 }
 
 void build_fence_pointers(level *level, node *buffer, int buffer_size)
