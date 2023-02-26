@@ -316,8 +316,20 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
     }
 }
 
+void set_find_node(node **find_node, node *n)
+{
+    if (*find_node == NULL)
+    {
+        *find_node = (node *)malloc(sizeof(node));
+        NULL_pointer_check(*find_node, "Error: malloc failed in set_find_node");
+    }
+    (*find_node)->key = n->key;
+    (*find_node)->value = n->value;
+    (*find_node)->delete = n->delete;
+}
+
 // get a value
-int get(lsmtree *lsm, keyType key)
+void __get(lsmtree *lsm, keyType key, node **find_node)
 {
     //  acquire read mutex
     pthread_mutex_lock(&read_mutex);
@@ -326,14 +338,9 @@ int get(lsmtree *lsm, keyType key)
     {
         if (lsm->memtable[i].key == key)
         {
-            int value = lsm->memtable[i].value;
-            // if delete is true then return -1
-            if (lsm->memtable[i].delete == true)
-            {
-                value = -2;
-            }
+            set_find_node(find_node, &(lsm->memtable[i]));
             pthread_mutex_unlock(&read_mutex);
-            return value;
+            return;
         }
     }
 
@@ -342,48 +349,35 @@ int get(lsmtree *lsm, keyType key)
     {
         if (lsm->flush_buffer[i].key == key)
         {
-            int value = lsm->flush_buffer[i].value;
-            if (lsm->flush_buffer[i].delete == true)
-            {
-                value = -2;
-            }
+            set_find_node(find_node, &(lsm->flush_buffer[i]));
             pthread_mutex_unlock(&read_mutex);
-            return value;
+            return;
         }
     }
 
     // loop through levels and search disk
-    int value = -1;
-
     for (int i = 1; i <= lsm->max_level; i++)
     {
-        value = get_from_disk(lsm, key, i);
-        if (value != -1)
+        get_from_disk(lsm, find_node, key, i);
+        if (*find_node != NULL)
         {
             pthread_mutex_unlock(&read_mutex);
-            return value;
+            return;
         }
     }
     pthread_mutex_unlock(&read_mutex);
-    return value;
+    return;
 }
 
-int get_from_disk(lsmtree *lsm, keyType key, int get_level)
+void get_from_disk(lsmtree *lsm, node **find_node, keyType key, int get_level)
 {
     // open File fp for reading
     if (lsm->levels[get_level].filepath[0] == '\0')
     {
-        return -1;
+        return;
     }
 
-    int value = -1;
     FILE *fp = fopen(lsm->levels[get_level].filepath, "r");
-
-    // TODO sometimes erroring
-    if (fp == NULL)
-    {
-        print_tree("aqui", lsm);
-    }
     NULL_pointer_check(fp, "ERROR: get_from_disk");
 
     // copy over buffer_count elements to fp
@@ -415,14 +409,10 @@ int get_from_disk(lsmtree *lsm, keyType key, int get_level)
     // if fence pointer key is equal to key, return node at index 0 (don't do extra work of binary search)
     if (lsm->levels[get_level].fence_pointer_count > 0 && lsm->levels[get_level].fence_pointers[fence_pointer_index].key == key)
     {
-        value = nodes[0].value;
-        if (nodes[0].delete == true)
-        {
-            value = -2;
-        }
+        set_find_node(find_node, &(nodes[0]));
         free(nodes);
         fclose(fp);
-        return value;
+        return;
     }
 
     // binary search through nodes for key
@@ -434,11 +424,7 @@ int get_from_disk(lsmtree *lsm, keyType key, int get_level)
         mid = (low + high) / 2;
         if (nodes[mid].key == key)
         {
-            value = nodes[mid].value;
-            if (nodes[mid].delete == true)
-            {
-                value = -2;
-            }
+            set_find_node(find_node, &(nodes[mid]));
             break;
         }
         else if (nodes[mid].key < key)
@@ -452,7 +438,7 @@ int get_from_disk(lsmtree *lsm, keyType key, int get_level)
     }
     free(nodes);
     fclose(fp);
-    return value;
+    return;
 }
 
 void compact(node *buffer, int *buffer_size)
@@ -516,6 +502,21 @@ void destroy(lsmtree *lsm)
     pthread_mutex_unlock(&read_mutex);
     pthread_mutex_unlock(&write_mutex);
     // TODO make sure no rads/writes/merges start post destory or werird erros
+}
+
+int get(lsmtree *lsm, keyType key)
+{
+    node *found_node = NULL;
+    __get(lsm, key, &found_node);
+    if (found_node == NULL)
+    {
+        return -1;
+    }
+    if (found_node->delete == true)
+    {
+        return -2;
+    }
+    return found_node->value;
 }
 
 void build_fence_pointers(level *level, node *buffer, int buffer_size)

@@ -52,7 +52,7 @@ void insert_node(lsmtree *lsm, node n);
 void reset_level(level *level, int level_num, int level_size);
 void flush_to_level(level **new_levels, lsmtree const *original_lsm, int *level);
 int get(lsmtree *lsm, keyType key);
-int get_from_disk(lsmtree *lsm, keyType key, int level);
+void get_from_disk(lsmtree *lsm, node **find_node, keyType key, int level);
 void init_level(lsmtree *lsm, lsmtree const *original_lsm, int level);
 void reset_level(level *level, int level_num, int level_size);
 void compact(node *buffer, int *buffer_size);
