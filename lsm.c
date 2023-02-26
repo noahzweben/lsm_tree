@@ -508,15 +508,19 @@ int get(lsmtree *lsm, keyType key)
 {
     node *found_node = NULL;
     __get(lsm, key, &found_node);
+
     if (found_node == NULL)
     {
         return -1;
     }
     if (found_node->delete == true)
     {
+        free(found_node);
         return -2;
     }
-    return found_node->value;
+    int value = found_node->value;
+    free(found_node);
+    return value;
 }
 
 void build_fence_pointers(level *level, node *buffer, int buffer_size)
