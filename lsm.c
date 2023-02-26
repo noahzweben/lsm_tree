@@ -416,44 +416,33 @@ void get_from_disk(lsmtree *lsm, node **find_node, keyType key, int get_level)
     return;
 }
 
-// node *range(lsmtree *lsm, keyType start, keyType finish)
-// {
-//     //  acquire read mutex
-//     pthread_mutex_lock(&read_mutex);
-//     int mem_results[2 * lsm->levels[0].size];
-//     int mem_count = 0;
-//     // MOST RECENT: search memtable for key starting form back
-//     for (int i = lsm->memtable_level->count - 1; i >= 0; i--)
-//     {
-//         if (lsm->memtable[i].key >= start && lsm->memtable[i].key <= finish)
-//         {
-//         }
-//     }
+node *range(lsmtree *lsm, keyType start, keyType finish)
+{
+    //  acquire read mutex
+    pthread_mutex_lock(&read_mutex);
 
-//     // MIDDLE RECENT: search flush for key starting from back (more recent)
-//     for (int i = lsm->levels[0].count - 1; i >= 0; i--)
-//     {
-//         if (lsm->flush_buffer[i].key == key)
-//         {
-//             set_find_node(find_node, &(lsm->flush_buffer[i]));
-//             pthread_mutex_unlock(&read_mutex);
-//             return;
-//         }
-//     }
+    // LOAD matching nodes from memory
 
-//     // loop through levels and search disk
-//     for (int i = 1; i <= lsm->max_level; i++)
-//     {
-//         get_from_disk(lsm, find_node, key, i);
-//         if (*find_node != NULL)
-//         {
-//             pthread_mutex_unlock(&read_mutex);
-//             return;
-//         }
-//     }
-//     pthread_mutex_unlock(&read_mutex);
-//     return;
-// }
+    node mem_results[2 * lsm->levels[0].size];
+    int mem_count = 0;
+    for (int i = 0; i < lsm->memtable_level->count; i++)
+    {
+        if (lsm->memtable[i].key >= start && lsm->memtable[i].key <= finish)
+        {
+            mem_results[mem_count++] = lsm->memtable[i];
+        }
+    }
+    for (int i = 0; i < lsm->levels[0].count; i++)
+    {
+        if (lsm->flush_buffer[i].key >= start && lsm->flush_buffer[i].key <= finish)
+        {
+            mem_results[mem_count++] = lsm->flush_buffer[i];
+        }
+    }
+
+    pthread_mutex_unlock(&read_mutex);
+    return NULL;
+}
 
 // HELPERS
 // ------------------------------------------------------------------------------------------------------------------------
