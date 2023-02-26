@@ -328,11 +328,11 @@ void delete_test()
         }
     }
     // ensure that the values are correct
-    sleep(1);
+    sleep(3);
+    print_tree("D", lsm);
     for (int i = 0; i < writes; i++)
     {
         int getR = get(lsm, i);
-        printf("getR %d %d\n", i, getR);
         if (i % 5 == 0)
         {
             assert(getR == -2);

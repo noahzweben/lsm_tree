@@ -416,6 +416,10 @@ int get_from_disk(lsmtree *lsm, keyType key, int get_level)
     if (lsm->levels[get_level].fence_pointer_count > 0 && lsm->levels[get_level].fence_pointers[fence_pointer_index].key == key)
     {
         value = nodes[0].value;
+        if (nodes[0].delete == true)
+        {
+            value = -2;
+        }
         free(nodes);
         fclose(fp);
         return value;
@@ -463,9 +467,10 @@ void compact(node *buffer, int *buffer_size)
     {
         if (buffer[i].key == buffer[j].key)
         {
-            if (buffer[j].delete == true)
+            // TODO is this right>
+            if (buffer[i].delete == true)
             {
-                buffer[i].delete = true;
+                buffer[j].delete = true;
             }
             j++;
         }
