@@ -468,9 +468,9 @@ void compact(node *buffer, int *buffer_size)
         if (buffer[i].key == buffer[j].key)
         {
             // TODO is this right>
-            if (buffer[i].delete == true)
+            if (buffer[j].delete == true)
             {
-                buffer[j].delete = true;
+                buffer[i].delete = true;
             }
             j++;
         }

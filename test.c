@@ -328,8 +328,7 @@ void delete_test()
         }
     }
     // ensure that the values are correct
-    sleep(3);
-    print_tree("D", lsm);
+    sleep(2);
     for (int i = 0; i < writes; i++)
     {
         int getR = get(lsm, i);
@@ -350,15 +349,15 @@ int main(void)
 
     printf("BLOCK SIZE NODES %d\n", BLOCK_SIZE_NODES);
 
-    // basic_buffer_test();
-    // level_1_test();
-    // level_2_test();
-    // level_3_test();
-    // sort_test();
-    // fence_pointers_correct();
-    // large_buffer_size_complex();
-    // compact_test();
-    // dedup_test();
+    basic_buffer_test();
+    level_1_test();
+    level_2_test();
+    level_3_test();
+    sort_test();
+    fence_pointers_correct();
+    large_buffer_size_complex();
+    compact_test();
+    dedup_test();
     delete_test();
 
     return 0;
