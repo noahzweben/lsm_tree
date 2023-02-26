@@ -344,6 +344,93 @@ void delete_test()
 
     destroy(lsm);
 }
+void *threaded_write(void *args)
+{
+    void **args_a = (void **)args;
+    lsmtree *lsm = (lsmtree *)args_a[0];
+    int i = *((int *)args_a[1]);
+    insert(lsm, i, 2 * i);
+    free(args);
+    pthread_exit(NULL);
+}
+
+void multi_thread_writes_test()
+{
+
+    printf("multi_thread_writes_test\n");
+    lsmtree *lsm = create(10);
+    int n = 1000;
+    int write_array[n];
+    pthread_t thread_array[n];
+
+    for (int i = 0; i < n; i++)
+    {
+        write_array[i] = i;
+        void **args = malloc(sizeof(void *) * 2);
+        args[0] = (void *)lsm;
+        args[1] = (void *)&write_array[i];
+        pthread_create(&(thread_array[i]), NULL, threaded_write, args);
+    }
+    for (int i = 0; i < n; i++)
+    {
+        pthread_join(thread_array[i], NULL);
+    }
+
+    for (int i = 0; i < n; i++)
+    {
+        int getR = get(lsm, i);
+        if (2 * i != getR)
+        {
+            printf("{%d,%d}\n", i, getR);
+            print_tree("u", lsm);
+        }
+        assert(getR == 2 * i);
+    }
+
+    destroy(lsm);
+}
+
+void *threaded_read(void *args)
+{
+    void **args_a = (void **)args;
+    lsmtree *lsm = (lsmtree *)args_a[0];
+    int i = *((int *)args_a[1]);
+    int getR = get(lsm, i);
+    assert(getR == 2 * i);
+    free(args);
+    pthread_exit(NULL);
+}
+
+void multi_thread_read_test()
+{
+
+    printf("multi_thread_writes_test\n");
+    lsmtree *lsm = create(10);
+    int n = 1000;
+    int read_array[n];
+    pthread_t thread_array[n];
+
+    for (int i = 0; i < n; i++)
+    {
+        insert(lsm, i, 2 * i);
+    }
+
+    for (int i = 0; i < n; i++)
+    {
+        read_array[i] = i;
+        void **args = malloc(sizeof(void *) * 2);
+        args[0] = (void *)lsm;
+        args[1] = (void *)&read_array[i];
+        pthread_create(&(thread_array[i]), NULL, threaded_read, args);
+    }
+    for (int i = 0; i < n; i++)
+    {
+        pthread_join(thread_array[i], NULL);
+    }
+
+    destroy(lsm);
+}
+
 int main(void)
 {
     printf("size of bool %lu\n", sizeof(bool));
@@ -361,6 +448,8 @@ int main(void)
     compact_test();
     dedup_test();
     delete_test();
+    multi_thread_writes_test();
+    multi_thread_read_test();
 
     return 0;
 }
