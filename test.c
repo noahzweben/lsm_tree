@@ -279,17 +279,30 @@ void compact_test()
 
     };
     int buffer_size = 11;
-    // result should be sorted by key and duplicates removed with later values kept ({3,9} and {6,11})
+    // result should be sorted by key and duplicates removed
     compact(buffer, &buffer_size);
     assert(buffer_size == 7);
     for (int i = 0; i < buffer_size - 1; i++)
     {
         assert(buffer[i].key < buffer[i + 1].key);
     }
+    assert(buffer[2].value == 9);
     assert(buffer[3].delete == true);
     assert(buffer[3].key == 4);
     assert(buffer[6].delete == true);
     assert(buffer[6].key == 8);
+
+    node buffer_2[2] =
+        {
+            {.delete = false, 1, 100},
+            {.delete = false, 1, 11},
+        };
+    int buffer_2_size = 2;
+    compact(buffer_2, &buffer_2_size);
+    assert(buffer_2_size == 1);
+    assert(buffer_2[0].value == 11);
+    assert(buffer_2[0].key == 1);
+    assert(buffer_2[0].delete == false);
 }
 
 void dedup_test()
@@ -301,12 +314,21 @@ void dedup_test()
     {
         insert(lsm, 1, i);
     }
-    // ensure that the value is the last value inserted
-    int getR = get(lsm, 1);
-    assert(getR == 399);
-    // make sure stuff is finished pre destory
+
+    // make sure merge is finished, and latest value used from file system merge
     sleep(1);
+    assert(get(lsm, 1) == 399);
     destroy(lsm);
+
+    // make sure latest value kept for values just in memtable
+    lsmtree *lsm2 = create(10);
+    for (int i = 0; i < 8; i++)
+    {
+        insert(lsm2, 2, i);
+    }
+    assert(get(lsm2, 2) == 7);
+    sleep(1);
+    destroy(lsm2);
 }
 
 void delete_test()
@@ -404,7 +426,7 @@ void *threaded_read(void *args)
 void multi_thread_read_test()
 {
 
-    printf("multi_thread_writes_test\n");
+    printf("multi_thread_read_test\n");
     lsmtree *lsm = create(10);
     int n = 1000;
     int read_array[n];

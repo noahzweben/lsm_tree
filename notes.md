@@ -3,7 +3,6 @@ sudo yum install libuuid libuuid-devel
 
 # TODO
 * Valgrind of multi-threaded writes
-
 * bloom filters
 * range queries
 * uint vs int

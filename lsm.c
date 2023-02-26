@@ -416,13 +416,52 @@ void get_from_disk(lsmtree *lsm, node **find_node, keyType key, int get_level)
     return;
 }
 
+// node *range(lsmtree *lsm, keyType start, keyType finish)
+// {
+//     //  acquire read mutex
+//     pthread_mutex_lock(&read_mutex);
+//     int mem_results[2 * lsm->levels[0].size];
+//     int mem_count = 0;
+//     // MOST RECENT: search memtable for key starting form back
+//     for (int i = lsm->memtable_level->count - 1; i >= 0; i--)
+//     {
+//         if (lsm->memtable[i].key >= start && lsm->memtable[i].key <= finish)
+//         {
+//         }
+//     }
+
+//     // MIDDLE RECENT: search flush for key starting from back (more recent)
+//     for (int i = lsm->levels[0].count - 1; i >= 0; i--)
+//     {
+//         if (lsm->flush_buffer[i].key == key)
+//         {
+//             set_find_node(find_node, &(lsm->flush_buffer[i]));
+//             pthread_mutex_unlock(&read_mutex);
+//             return;
+//         }
+//     }
+
+//     // loop through levels and search disk
+//     for (int i = 1; i <= lsm->max_level; i++)
+//     {
+//         get_from_disk(lsm, find_node, key, i);
+//         if (*find_node != NULL)
+//         {
+//             pthread_mutex_unlock(&read_mutex);
+//             return;
+//         }
+//     }
+//     pthread_mutex_unlock(&read_mutex);
+//     return;
+// }
+
 // HELPERS
 // ------------------------------------------------------------------------------------------------------------------------
 void compact(node *buffer, int *buffer_size)
 {
     // sort buffer
     merge_sort(buffer, *buffer_size);
-    // loop through and remove duplicates (keep last value)
+    // loop through and remove duplicates (keeps LAST occurence)
     // if node.delete == true, remove all other duplicate nodes (just keep delete node)
     int i = 0;
     int j = 1;
@@ -430,11 +469,9 @@ void compact(node *buffer, int *buffer_size)
     {
         if (buffer[i].key == buffer[j].key)
         {
-            // TODO is this right>
-            if (buffer[j].delete == true)
-            {
-                buffer[i].delete = true;
-            }
+            buffer[i].key = buffer[j].key;
+            buffer[i].value = buffer[j].value;
+            buffer[i].delete = buffer[j].delete || buffer[i].delete;
             j++;
         }
         else

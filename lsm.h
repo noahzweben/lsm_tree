@@ -49,6 +49,7 @@ void destroy(lsmtree *lsm);
 void insert(lsmtree *lsm, keyType key, valType value);
 void delete_key(lsmtree *lsm, keyType key);
 int get(lsmtree *lsm, keyType key);
+node *range(lsmtree *lsm, keyType start, keyType finish);
 
 // ------------------------------------------------------------------
 
