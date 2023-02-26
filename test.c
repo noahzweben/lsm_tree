@@ -341,6 +341,8 @@ void delete_test()
             assert(getR == 2 * i);
         }
     }
+
+    destroy(lsm);
 }
 int main(void)
 {
