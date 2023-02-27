@@ -476,6 +476,7 @@ void range_test_memory()
     }
 
     free(results);
+    sleep(2);
     destroy(lsm);
 }
 
@@ -526,6 +527,7 @@ void range_test_complex()
     }
 
     free(results);
+    sleep(2);
     destroy(lsm);
 }
 
