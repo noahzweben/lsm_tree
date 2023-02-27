@@ -100,7 +100,6 @@ void *init_flush_thread(void *args)
     pthread_mutex_lock(&merge_mutex);
     lsmtree *lsm = (lsmtree *)args;
 
-
     // code to empty memtable and start accepting writes again
     // signals to waiting write threads that they can claim mutex
     pthread_mutex_lock(&write_mutex);
@@ -417,38 +416,104 @@ void get_from_disk(lsmtree *lsm, node **find_node, keyType key, int get_level)
     return;
 }
 
-node *range(lsmtree *lsm, keyType start, keyType finish)
+void range(lsmtree *lsm, node **nodes, int *n_results, keyType start, keyType finish)
 {
+    if (start > finish)
+    {
+        printf("Error: start key must be less than finish key in range\n");
+        return;
+    }
     //  acquire read mutex
     pthread_rwlock_rdlock(&rwlock);
 
     // LOAD matching nodes from memory
 
-    node mem_results[2 * lsm->levels[0].size];
-    int mem_count = 0;
-    for (int i = 0; i < lsm->memtable_level->count; i++)
+    *nodes = (node *)malloc(10000 * lsm->levels[0].size);
+    *n_results = 0;
+
+    // start from back bc of how compact works ( newest should be in back)
+    for (int i = lsm->max_level; i >= 1; i--)
     {
-        if (lsm->memtable[i].key >= start && lsm->memtable[i].key <= finish)
-        {
-            mem_results[mem_count++] = lsm->memtable[i];
-        }
+        range_from_disk(&(lsm->levels[i]), nodes, n_results, start, finish);
     }
+
     for (int i = 0; i < lsm->levels[0].count; i++)
     {
-        if (lsm->flush_buffer[i].key >= start && lsm->flush_buffer[i].key <= finish)
+        if (lsm->flush_buffer[i].key >= start && lsm->flush_buffer[i].key < finish)
         {
-            mem_results[mem_count++] = lsm->flush_buffer[i];
+            (*nodes)[(*n_results)++] = lsm->flush_buffer[i];
         }
     }
-    (void)mem_results;
+
+    for (int i = 0; i < lsm->memtable_level->count; i++)
+    {
+        if (lsm->memtable[i].key >= start && lsm->memtable[i].key < finish)
+        {
+            (*nodes)[(*n_results)++] = lsm->memtable[i];
+        }
+    }
+    compact(*nodes, n_results);
     pthread_rwlock_unlock(&rwlock);
-    return NULL;
+}
+
+void range_from_disk(level *range_level, node **nodes, int *n_results, int start, int finish)
+{
+    // open File fp for reading
+    if (range_level->filepath[0] == '\0')
+    {
+        return;
+    }
+    // get start and finish fence pointers
+    int start_fence_pointer_index = 0;
+    int finish_fence_pointer_index = 0;
+
+    // TODO check this
+    for (int i = 0; i < range_level->fence_pointer_count; i++)
+    {
+        if (start >= range_level->fence_pointers[i].key)
+        {
+            start_fence_pointer_index = i;
+        }
+        if (finish >= range_level->fence_pointers[i].key)
+        {
+            finish_fence_pointer_index = i;
+        }
+    }
+    // set file fp to start fence pointer index
+    FILE *fp = fopen(range_level->filepath, "r");
+    NULL_pointer_check(fp, "ERROR: range_from_disk");
+
+    // read blocks through finish_fence_pointer into nodes array
+    int seek_amt = start_fence_pointer_index * BLOCK_SIZE_NODES * sizeof(node);
+    fseek(fp, seek_amt, SEEK_SET);
+    node *buffer = (node *)malloc(sizeof(node) * BLOCK_SIZE_NODES * (finish_fence_pointer_index - start_fence_pointer_index + 1));
+    NULL_pointer_check(buffer, "Error: malloc failed in range_from_disk");
+    int buffer_size = 0;
+    for (int i = start_fence_pointer_index; i <= finish_fence_pointer_index; i++)
+    {
+        int r = fread(buffer + buffer_size, sizeof(node), BLOCK_SIZE_NODES, fp);
+        buffer_size += r;
+    }
+    // for anything in buffer within start and finish, add to nodes array, and increase range
+    for (int i = 0; i < buffer_size; i++)
+    {
+        if (buffer[i].key >= start && buffer[i].key < finish)
+        {
+            (*nodes)[(*n_results)++] = buffer[i];
+        }
+    }
+    free(buffer);
+    fclose(fp);
 }
 
 // HELPERS
 // ------------------------------------------------------------------------------------------------------------------------
 void compact(node *buffer, int *buffer_size)
 {
+    if (*buffer_size == 0)
+    {
+        return;
+    }
     // sort buffer
     merge_sort(buffer, *buffer_size);
     // loop through and remove duplicates (keeps LAST occurence)
@@ -478,7 +543,6 @@ void compact(node *buffer, int *buffer_size)
 
 void destroy(lsmtree *lsm)
 {
-
     pthread_mutex_lock(&merge_mutex);
     pthread_mutex_lock(&write_mutex);
     pthread_rwlock_wrlock(&rwlock);
@@ -503,7 +567,7 @@ void destroy(lsmtree *lsm)
     free(lsm->flush_buffer);
     free(lsm->memtable);
     free(lsm);
-    
+
     pthread_rwlock_unlock(&rwlock);
     pthread_mutex_unlock(&write_mutex);
     pthread_mutex_unlock(&merge_mutex);
@@ -517,7 +581,6 @@ void destroy(lsmtree *lsm)
 
 void build_fence_pointers(level *level, node *buffer, int buffer_size)
 {
-
     // allocate a fence pointer for every BLOCK_SIZE_NODEs nodes
     int fence_pointer_count = buffer_size / BLOCK_SIZE_NODES + (buffer_size % BLOCK_SIZE_NODES != 0);
     // free old
@@ -547,7 +610,6 @@ void reset_level(level *level, int level_num, int buffer_size)
 
 void copy_level(level *dest_level, level *src_level, int dest_max_level, int copy_level)
 {
-
     // Check if the destination has fence pointers, if so free them
     if (dest_max_level >= copy_level && dest_level->fence_pointer_count > 0)
     {
