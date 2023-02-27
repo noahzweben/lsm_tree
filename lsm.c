@@ -100,14 +100,14 @@ void *init_flush_thread(void *args)
     pthread_mutex_lock(&merge_mutex);
     lsmtree *lsm = (lsmtree *)args;
 
-    // copy memtable to flush buffer and copy level metadata to level[0]
-    memcpy(lsm->flush_buffer, lsm->memtable, lsm->memtable_level->size * sizeof(node));
-    memcpy(&lsm->levels[0], lsm->memtable_level, sizeof(level));
 
     // code to empty memtable and start accepting writes again
     // signals to waiting write threads that they can claim mutex
     pthread_mutex_lock(&write_mutex);
     pthread_rwlock_wrlock(&rwlock);
+    // copy memtable to flush buffer and copy level metadata to level[0]
+    memcpy(lsm->flush_buffer, lsm->memtable, lsm->memtable_level->size * sizeof(node));
+    memcpy(&lsm->levels[0], lsm->memtable_level, sizeof(level));
     reset_level(lsm->memtable_level, lsm->memtable_level->level, lsm->memtable_level->size);
     // unlock rwlock for writing
     pthread_rwlock_unlock(&rwlock);
@@ -480,8 +480,9 @@ void destroy(lsmtree *lsm)
 {
 
     pthread_mutex_lock(&merge_mutex);
-    pthread_rwlock_wrlock(&rwlock);
     pthread_mutex_lock(&write_mutex);
+    pthread_rwlock_wrlock(&rwlock);
+
     // loop through levels and remove filepath
     for (int i = 1; i <= lsm->max_level; i++)
     {
@@ -502,10 +503,10 @@ void destroy(lsmtree *lsm)
     free(lsm->flush_buffer);
     free(lsm->memtable);
     free(lsm);
-    pthread_mutex_unlock(&merge_mutex);
+    
     pthread_rwlock_unlock(&rwlock);
     pthread_mutex_unlock(&write_mutex);
-
+    pthread_mutex_unlock(&merge_mutex);
     // destory all mutexes and locks
     // pthread_mutex_destroy(&merge_mutex);
     // pthread_rwlock_destroy(&rwlock);

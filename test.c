@@ -410,7 +410,7 @@ void multi_thread_writes_test()
     }
 
 
-    sleep(1);
+    sleep(5);
     destroy(lsm);
 }
 
@@ -452,7 +452,7 @@ void multi_thread_read_test()
         pthread_join(thread_array[i], NULL);
     }
 
-    sleep(1);
+    sleep(5);
     destroy(lsm);
 }
 
