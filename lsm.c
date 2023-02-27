@@ -18,9 +18,7 @@ int BLOCK_SIZE_NODES = 4096 / sizeof(node);
 pthread_mutex_t merge_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t write_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t write_cond = PTHREAD_COND_INITIALIZER;
-pthread_mutex_t read_mutex = PTHREAD_MUTEX_INITIALIZER;
-// TODO switch to read write lock
-// pthread_rwlock_t read_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
 
 /*
 Creates an initializes a new lsm tree. Takes memtable size as input
@@ -92,7 +90,6 @@ void __insert(lsmtree *lsm, node n)
 
     pthread_cond_signal(&write_cond);
     pthread_mutex_unlock(&write_mutex);
-
 }
 
 // MERGING
@@ -110,9 +107,10 @@ void *init_flush_thread(void *args)
     // code to empty memtable and start accepting writes again
     // signals to waiting write threads that they can claim mutex
     pthread_mutex_lock(&write_mutex);
-    pthread_mutex_lock(&read_mutex);
+    pthread_rwlock_wrlock(&rwlock);
     reset_level(lsm->memtable_level, lsm->memtable_level->level, lsm->memtable_level->size);
-    pthread_mutex_unlock(&read_mutex);
+    // unlock rwlock for writing
+    pthread_rwlock_unlock(&rwlock);
     pthread_cond_signal(&write_cond);
     pthread_mutex_unlock(&write_mutex);
 
@@ -131,10 +129,11 @@ void *init_flush_thread(void *args)
     // while this is happening the tree is in an inconsistent state
     // so we lock reads from it
     // writes are still ok as they only go to the memtable
-    pthread_mutex_lock(&read_mutex);
+
+    pthread_rwlock_wrlock(&rwlock);
     copy_tree(lsm, new_levels, depth);
     // printf("max depth %d\n", lsm->max_level);
-    pthread_mutex_unlock(&read_mutex);
+    pthread_rwlock_unlock(&rwlock);
 
     // release merge mutex
     pthread_mutex_unlock(&merge_mutex);
@@ -308,15 +307,15 @@ void set_find_node(node **find_node, node *n)
 // get a value
 void __get(lsmtree *lsm, node **find_node, keyType key)
 {
-    //  acquire read mutex
-    pthread_mutex_lock(&read_mutex);
+    //  get read lock for rwlock
+    pthread_rwlock_rdlock(&rwlock);
     // MOST RECENT: search memtable for key starting form back
     for (int i = lsm->memtable_level->count - 1; i >= 0; i--)
     {
         if (lsm->memtable[i].key == key)
         {
             set_find_node(find_node, &(lsm->memtable[i]));
-            pthread_mutex_unlock(&read_mutex);
+            pthread_rwlock_unlock(&rwlock);
             return;
         }
     }
@@ -327,7 +326,7 @@ void __get(lsmtree *lsm, node **find_node, keyType key)
         if (lsm->flush_buffer[i].key == key)
         {
             set_find_node(find_node, &(lsm->flush_buffer[i]));
-            pthread_mutex_unlock(&read_mutex);
+            pthread_rwlock_unlock(&rwlock);
             return;
         }
     }
@@ -338,11 +337,11 @@ void __get(lsmtree *lsm, node **find_node, keyType key)
         get_from_disk(lsm, find_node, key, i);
         if (*find_node != NULL)
         {
-            pthread_mutex_unlock(&read_mutex);
+            pthread_rwlock_unlock(&rwlock);
             return;
         }
     }
-    pthread_mutex_unlock(&read_mutex);
+    pthread_rwlock_unlock(&rwlock);
     return;
 }
 
@@ -421,7 +420,7 @@ void get_from_disk(lsmtree *lsm, node **find_node, keyType key, int get_level)
 node *range(lsmtree *lsm, keyType start, keyType finish)
 {
     //  acquire read mutex
-    pthread_mutex_lock(&read_mutex);
+    pthread_rwlock_rdlock(&rwlock);
 
     // LOAD matching nodes from memory
 
@@ -442,7 +441,7 @@ node *range(lsmtree *lsm, keyType start, keyType finish)
         }
     }
     (void)mem_results;
-    pthread_mutex_unlock(&read_mutex);
+    pthread_rwlock_unlock(&rwlock);
     return NULL;
 }
 
@@ -481,7 +480,7 @@ void destroy(lsmtree *lsm)
 {
 
     pthread_mutex_lock(&merge_mutex);
-    pthread_mutex_lock(&read_mutex);
+    pthread_rwlock_wrlock(&rwlock);
     pthread_mutex_lock(&write_mutex);
     // loop through levels and remove filepath
     for (int i = 1; i <= lsm->max_level; i++)
@@ -504,8 +503,14 @@ void destroy(lsmtree *lsm)
     free(lsm->memtable);
     free(lsm);
     pthread_mutex_unlock(&merge_mutex);
-    pthread_mutex_unlock(&read_mutex);
+    pthread_rwlock_unlock(&rwlock);
     pthread_mutex_unlock(&write_mutex);
+
+    // destory all mutexes and locks
+    pthread_mutex_destroy(&merge_mutex);
+    pthread_rwlock_destroy(&rwlock);
+    pthread_mutex_destroy(&write_mutex);
+
     // TODO make sure no rads/writes/merges start post destory or werird erros
 }
 

@@ -17,6 +17,7 @@
         "uuid.h": "c",
         "string.h": "c",
         "stat.h": "c",
-        "stdbool.h": "c"
+        "stdbool.h": "c",
+        "time.h": "c"
     }
 }
