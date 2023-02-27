@@ -80,8 +80,6 @@ void __insert(lsmtree *lsm, node n)
     // it will just miss the most recently written node
     lsm->memtable_level->count++;
     // allow subsequnt writes
-    pthread_cond_signal(&write_cond);
-    pthread_mutex_unlock(&write_mutex);
 
     // if buffer is full, move to disk
     if (lsm->memtable_level->count == lsm->memtable_level->size)
@@ -91,6 +89,10 @@ void __insert(lsmtree *lsm, node n)
         pthread_create(&thread, NULL, init_flush_thread, (void *)lsm);
         pthread_detach(thread);
     }
+
+    pthread_cond_signal(&write_cond);
+    pthread_mutex_unlock(&write_mutex);
+
 }
 
 // MERGING
@@ -439,7 +441,7 @@ node *range(lsmtree *lsm, keyType start, keyType finish)
             mem_results[mem_count++] = lsm->flush_buffer[i];
         }
     }
-
+    (void)mem_results;
     pthread_mutex_unlock(&read_mutex);
     return NULL;
 }

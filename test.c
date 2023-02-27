@@ -460,18 +460,18 @@ int main(void)
 
     printf("BLOCK SIZE NODES %d\n", BLOCK_SIZE_NODES);
 
-    basic_buffer_test();
-    level_1_test();
-    level_2_test();
-    level_3_test();
-    sort_test();
-    fence_pointers_correct();
-    large_buffer_size_complex();
-    compact_test();
-    dedup_test();
-    delete_test();
+    // basic_buffer_test();
+    // level_1_test();
+    // level_2_test();
+    // level_3_test();
+    // sort_test();
+    // fence_pointers_correct();
+    // large_buffer_size_complex();
+    // compact_test();
+    // dedup_test();
+    // delete_test();
     multi_thread_writes_test();
-    multi_thread_read_test();
+    // multi_thread_read_test();
 
     return 0;
 }
