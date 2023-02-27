@@ -507,9 +507,9 @@ void destroy(lsmtree *lsm)
     pthread_mutex_unlock(&write_mutex);
 
     // destory all mutexes and locks
-    pthread_mutex_destroy(&merge_mutex);
-    pthread_rwlock_destroy(&rwlock);
-    pthread_mutex_destroy(&write_mutex);
+    // pthread_mutex_destroy(&merge_mutex);
+    // pthread_rwlock_destroy(&rwlock);
+    // pthread_mutex_destroy(&write_mutex);
 
     // TODO make sure no rads/writes/merges start post destory or werird erros
 }
