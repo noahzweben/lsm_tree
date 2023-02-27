@@ -15,6 +15,9 @@
         "vector": "c",
         "lsm.h": "c",
         "uuid.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "stat.h": "c",
+        "stdbool.h": "c",
+        "time.h": "c"
     }
 }

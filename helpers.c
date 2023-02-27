@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <uuid/uuid.h>
-
+#include <stdbool.h>
 
 void print_tree(char *msg, lsmtree *lsm)
 {

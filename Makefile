@@ -1,4 +1,4 @@
-CC=gcc -std=c99
+CC=gcc -std=gnu99
 CFLAGS = -ggdb3 -W -Wall -Wextra -Werror -pthread -O3
 LDFLAGS = -pthread
 LIBS = 
@@ -8,7 +8,7 @@ LIBS =
 ifeq ($(shell uname),Darwin)
 	LIBS += 
 else
-	LIBS += -luuid
+	LIBS += -luuid -lpthread
 endif
 
 

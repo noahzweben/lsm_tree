@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <math.h>
 #include "lsm.h"
+#include <stdbool.h>
 #include <string.h>
 
 void shuffle_list(node *random_array, int size)
@@ -27,12 +28,13 @@ int main(int argc, char **argv)
   printf("Performing stress test.\n");
 
   int num_inserts = (int)(1 * pow(10, 6));
-  lsmtree *lsm = create(BLOCK_SIZE_NODES);
+  int NODE_NUM = 512;
+  lsmtree *lsm = create(NODE_NUM);
 
   node *random_array = (node *)malloc(sizeof(node) * num_inserts);
   for (int i = 0; i < num_inserts; i++)
   {
-    random_array[i] = (node){i, rand()};
+    random_array[i] = (node){.delete = false, rand(), rand()};
   }
   shuffle_list(random_array, num_inserts);
 

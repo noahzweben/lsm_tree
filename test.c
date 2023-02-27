@@ -8,6 +8,7 @@
 #include "helpers.h"
 #include <unistd.h>
 #include <pthread.h>
+#include <stdbool.h>
 
 void basic_buffer_test()
 {
@@ -62,7 +63,7 @@ void level_1_test()
     // about the internal state of the system
     // GETS should be available immediately
     sleep(1);
-    pthread_mutex_lock(&merge_mutex);
+    pthread_mutex_unlock(&merge_mutex);
     assert(lsm->memtable_level->count == 0);
     assert(lsm->levels[0].count == 0);
     assert(lsm->levels[1].count == 10);
@@ -210,7 +211,7 @@ void fence_pointers_correct()
     sleep(1);
     pthread_mutex_lock(&merge_mutex);
     assert(lsm->levels[1].fence_pointers[0].key == 0 + offset);
-    assert(lsm->levels[1].fence_pointers[1].key == 512 + offset);
+    assert(lsm->levels[1].fence_pointers[1].key == BLOCK_SIZE_NODES + offset);
     pthread_mutex_unlock(&merge_mutex);
     destroy(lsm);
 }
@@ -263,25 +264,45 @@ void large_buffer_size_complex()
 void compact_test()
 {
     printf("compact_test\n");
-    node buffer[10] = {
-        {1, 2},
-        {2, 4},
-        {3, 0},
-        {4, 8},
-        {3, 9},
-        {6, 27},
-        {7, 14},
-        {8, 16},
-        {6, 11},
+    node buffer[11] = {
+        {.delete = false, 1, 2},
+        {.delete = true, 4, 10},
+        {.delete = false, 2, 4},
+        {.delete = false, 3, 0},
+        {.delete = false, 4, 8},
+        {.delete = false, 3, 9},
+        {.delete = false, 6, 27},
+        {.delete = false, 7, 14},
+        {.delete = false, 8, 16},
+        {.delete = false, 6, 11},
+        {.delete = true, 8, 11},
+
     };
-    int buffer_size = 10;
-    // result should be sorted by key and duplicates removed with later values kept ({3,9} and {6,11})
+    int buffer_size = 11;
+    // result should be sorted by key and duplicates removed
     compact(buffer, &buffer_size);
-    assert(buffer_size == 8);
+    assert(buffer_size == 7);
     for (int i = 0; i < buffer_size - 1; i++)
     {
         assert(buffer[i].key < buffer[i + 1].key);
     }
+    assert(buffer[2].value == 9);
+    assert(buffer[3].delete == true);
+    assert(buffer[3].key == 4);
+    assert(buffer[6].delete == true);
+    assert(buffer[6].key == 8);
+
+    node buffer_2[2] =
+        {
+            {.delete = false, 1, 100},
+            {.delete = false, 1, 11},
+        };
+    int buffer_2_size = 2;
+    compact(buffer_2, &buffer_2_size);
+    assert(buffer_2_size == 1);
+    assert(buffer_2[0].value == 11);
+    assert(buffer_2[0].key == 1);
+    assert(buffer_2[0].delete == false);
 }
 
 void dedup_test()
@@ -293,14 +314,155 @@ void dedup_test()
     {
         insert(lsm, 1, i);
     }
-    // ensure that the value is the last value inserted
-    int getR = get(lsm, 1);
-    assert(getR == 399);
+
+    // make sure merge is finished, and latest value used from file system merge
+    sleep(1);
+    assert(get(lsm, 1) == 399);
+    destroy(lsm);
+
+    // make sure latest value kept for values just in memtable
+    lsmtree *lsm2 = create(10);
+    for (int i = 0; i < 8; i++)
+    {
+        insert(lsm2, 2, i);
+    }
+    assert(get(lsm2, 2) == 7);
+    sleep(1);
+    destroy(lsm2);
+}
+
+void delete_test()
+{
+    printf("delete_test\n");
+    lsmtree *lsm = create(10);
+    int writes = 401;
+    // insert 400 nodes with the same key and increasing values
+    for (int i = 0; i < writes; i++)
+    {
+        insert(lsm, i, 2 * i);
+    }
+    // delete all multiples of 5
+    for (int i = 0; i < writes; i++)
+    {
+        if (i % 5 == 0)
+        {
+            delete_key(lsm, i);
+        }
+    }
+    // ensure that the values are correct
+    sleep(2);
+    for (int i = 0; i < writes; i++)
+    {
+        int getR = get(lsm, i);
+        if (i % 5 == 0)
+        {
+            assert(getR == -2);
+        }
+        else
+        {
+            assert(getR == 2 * i);
+        }
+    }
+
+    destroy(lsm);
+}
+void *threaded_write(void *args)
+{
+    void **args_a = (void **)args;
+    lsmtree *lsm = (lsmtree *)args_a[0];
+    int i = *((int *)args_a[1]);
+    insert(lsm, i, 2 * i);
+    free(args);
+    pthread_exit(NULL);
+}
+
+void multi_thread_writes_test()
+{
+
+    printf("multi_thread_writes_test\n");
+    lsmtree *lsm = create(10);
+    int n = 10;
+    int write_array[n];
+    pthread_t thread_array[n];
+
+    for (int i = 0; i < n; i++)
+    {
+        write_array[i] = i;
+        void **args = malloc(sizeof(void *) * 2);
+        args[0] = (void *)lsm;
+        args[1] = (void *)&write_array[i];
+        pthread_create(&(thread_array[i]), NULL, threaded_write, args);
+    }
+    for (int i = 0; i < n; i++)
+    {
+        pthread_join(thread_array[i], NULL);
+    }
+
+    for (int i = 0; i < n; i++)
+    {
+        int getR = get(lsm, i);
+        if (2 * i != getR)
+        {
+            printf("{%d,%d}\n", i, getR);
+            print_tree("u", lsm);
+        }
+        assert(getR == 2 * i);
+    }
+
+
+    sleep(5);
+    destroy(lsm);
+}
+
+void *threaded_read(void *args)
+{
+    void **args_a = (void **)args;
+    lsmtree *lsm = (lsmtree *)args_a[0];
+    int i = *((int *)args_a[1]);
+    int getR = get(lsm, i);
+    assert(getR == 2 * i);
+    free(args);
+    pthread_exit(NULL);
+}
+
+void multi_thread_read_test()
+{
+
+    printf("multi_thread_read_test\n");
+    lsmtree *lsm = create(10);
+    int n = 10;
+    int read_array[n];
+    pthread_t thread_array[n];
+
+    for (int i = 0; i < n; i++)
+    {
+        insert(lsm, i, 2 * i);
+    }
+
+    for (int i = 0; i < n; i++)
+    {
+        read_array[i] = i;
+        void **args = malloc(sizeof(void *) * 2);
+        args[0] = (void *)lsm;
+        args[1] = (void *)&read_array[i];
+        pthread_create(&(thread_array[i]), NULL, threaded_read, args);
+    }
+    for (int i = 0; i < n; i++)
+    {
+        pthread_join(thread_array[i], NULL);
+    }
+
+    sleep(5);
     destroy(lsm);
 }
 
 int main(void)
 {
+    printf("size of bool %lu\n", sizeof(bool));
+    printf("size of node %lu\n", sizeof(node));
+
+    printf("BLOCK SIZE NODES %d\n", BLOCK_SIZE_NODES);
+
     basic_buffer_test();
     level_1_test();
     level_2_test();
@@ -310,6 +472,9 @@ int main(void)
     large_buffer_size_complex();
     compact_test();
     dedup_test();
+    delete_test();
+    multi_thread_writes_test();
+    multi_thread_read_test();
 
     return 0;
 }
