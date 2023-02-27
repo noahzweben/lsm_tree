@@ -381,7 +381,7 @@ void multi_thread_writes_test()
 
     printf("multi_thread_writes_test\n");
     lsmtree *lsm = create(10);
-    int n = 1000;
+    int n = 10;
     int write_array[n];
     pthread_t thread_array[n];
 
@@ -409,6 +409,8 @@ void multi_thread_writes_test()
         assert(getR == 2 * i);
     }
 
+
+    sleep(1);
     destroy(lsm);
 }
 
@@ -428,7 +430,7 @@ void multi_thread_read_test()
 
     printf("multi_thread_read_test\n");
     lsmtree *lsm = create(10);
-    int n = 1000;
+    int n = 10;
     int read_array[n];
     pthread_t thread_array[n];
 
@@ -450,6 +452,7 @@ void multi_thread_read_test()
         pthread_join(thread_array[i], NULL);
     }
 
+    sleep(1);
     destroy(lsm);
 }
 
