@@ -501,7 +501,7 @@ void range_test_complex()
         assert(results[i].delete == false);
     }
 
-    // ensure picking up newest values
+    // // ensure picking up newest values
     for (int i = 700; i < 1200; i++)
     {
         insert(lsm, i, 3 * i);
@@ -538,19 +538,19 @@ int main(void)
 
     printf("BLOCK SIZE NODES %d\n", BLOCK_SIZE_NODES);
 
-    // basic_buffer_test();
-    // level_1_test();
-    // level_2_test();
-    // level_3_test();
-    // sort_test();
-    // fence_pointers_correct();
-    // large_buffer_size_complex();
-    // compact_test();
-    // dedup_test();
-    // delete_test();
-    // multi_thread_writes_test();
-    // multi_thread_read_test();
-    // range_test_memory();
+    basic_buffer_test();
+    level_1_test();
+    level_2_test();
+    level_3_test();
+    sort_test();
+    fence_pointers_correct();
+    large_buffer_size_complex();
+    compact_test();
+    dedup_test();
+    delete_test();
+    multi_thread_writes_test();
+    multi_thread_read_test();
+    range_test_memory();
     range_test_complex();
 
     return 0;
