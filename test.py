@@ -1,15 +1,23 @@
-import os
-import sys
-import struct
+import time
+# open fast.txt and parse it into a list of numbers
+# then print the list
 
-# read file
-with open("c5c8f6c0-b083-11ed-91fe-ba419ce2236d.bin", 'rb') as f:
-    # read in 4 bytes at a time and print them as integers
-    key = True
-    while True:
-        bytes = f.read(4)
-        if not bytes:
-            break
-    st = "Key: " if key else "Value: "
-    print(st, struct.unpack('I', bytes))
-    key = not key
+# open the file
+with open('fast.txt', 'r') as f:
+    # read into list of ints
+    data = [int(x) for x in f.read().split(",")]
+    # time how long it takes to sort using mergesort
+    start = time.time()
+    data.sort()
+    end = time.time()
+    print("Time to sort FAST: ", end - start)
+
+
+with open('slow.txt', 'r') as f:
+    # read into list of ints
+    data = [int(x) for x in f.read().split(",")]
+    # time how long it takes to sort
+    start = time.time()
+    data.sort()
+    end = time.time()
+    print("Time to sort SLOW: ", end - start)

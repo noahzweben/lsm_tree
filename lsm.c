@@ -262,7 +262,7 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
 
     // CHECK IF NEW LAYER IS FULL
 
-    if (new_levels[deeper_level].count == new_levels[deeper_level].size)
+    if (new_levels[deeper_level].count >= new_levels[deeper_level].size)
     {
         *depth = *depth + 1;
         flush_to_level(new_levels_wrapper, lsm, depth);

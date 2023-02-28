@@ -1,4 +1,5 @@
 #include <sys/time.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -34,7 +35,7 @@ int main(int argc, char **argv)
   node *random_array = (node *)malloc(sizeof(node) * num_inserts);
   for (int i = 0; i < num_inserts; i++)
   {
-    random_array[i] = (node){.delete = false, rand(), rand()};
+    random_array[i] = (node){.delete = false, rand() % 1000000, rand()};
   }
   shuffle_list(random_array, num_inserts);
 
@@ -50,8 +51,9 @@ int main(int argc, char **argv)
 
   gettimeofday(&stop, NULL);
   double secs = (double)(stop.tv_usec - start.tv_usec) / 1000000 + (double)(stop.tv_sec - start.tv_sec);
+  sleep(2);
   printf("%d insertions took %f seconds\n", num_inserts, secs);
-
+  printf("Max level: %d\n", lsm->max_level);
   // if command line arg writes is passed, end program
   if (argc > 1 && strcmp(argv[1], "writes") == 0)
   {
