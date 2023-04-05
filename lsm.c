@@ -348,6 +348,13 @@ void __get(lsmtree *lsm, node **find_node, keyType key)
 
 void get_from_disk(lsmtree *lsm, node **find_node, keyType key, int get_level)
 {
+    // check if key is in bloom filter
+    bloom_filter_t bf = lsm->levels[get_level].bloom_filter;
+    if (bloom_filter_t_lookup(&bf, key) == false)
+    {
+        return;
+    }
+
     // open File fp for reading
     if (lsm->levels[get_level].filepath[0] == '\0')
     {
