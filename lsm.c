@@ -227,6 +227,7 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
     // Store new fileapth you created
     strcpy(new_levels[deeper_level].filepath, new_path);
     build_fence_pointers(&(new_levels[deeper_level]), buffer, buffer_size);
+    build_bloom_filter(&(new_levels[deeper_level]), buffer, buffer_size);
     // add to new level count
     new_levels[deeper_level]
         .count = buffer_size;
@@ -239,6 +240,8 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
         remove(fresh_path);
         new_levels[fresh_level].filepath[0] = '\0';
         fclose(fp_fresher_layer);
+        // remove old bloom filter
+        bloom_filter_t_destroy(&(new_levels[fresh_level].bloom_filter));
     }
 
     // Remove old fence pointers
@@ -248,7 +251,6 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
         new_levels[fresh_level].fence_pointers = NULL;
         new_levels[fresh_level].fence_pointer_count = 0;
     }
-
     // update old level count
     new_levels[fresh_level]
         .count = 0;
@@ -560,6 +562,10 @@ void destroy(lsmtree *lsm)
         {
             free(lsm->levels[i].fence_pointers);
         }
+        if (lsm->levels[i].count > 0)
+        {
+            bloom_filter_t_destroy(&(lsm->levels[i].bloom_filter));
+        }
     }
 
     free(lsm->levels);
@@ -594,6 +600,21 @@ void build_fence_pointers(level *level, node *buffer, int buffer_size)
     level->fence_pointer_count = fence_pointer_count;
 }
 
+void build_bloom_filter(level *level, node *buffer, int buffer_size)
+{
+    bloom_filter_t bf;
+    bloom_filter_t_init(&bf, buffer_size * 1000, 5);
+    // add to buffer if delete == false
+    for (int i = 0; i < buffer_size; i++)
+    {
+        if (!buffer[i].delete)
+        {
+            bloom_filter_t_add(&bf, buffer[i].key);
+        }
+    }
+    level->bloom_filter = bf;
+}
+
 /*
 Helper method to initialize level metadata
 */
@@ -611,6 +632,8 @@ void reset_level(level *level, int level_num, int buffer_size)
 void copy_level(level *dest_level, level *src_level, int dest_max_level, int copy_level)
 {
     // Check if the destination has fence pointers, if so free them
+    // check if dest_max_level is greater than copy_level
+    // because we only want to free fence pointers for existing levels that we are copying over
     if (dest_max_level >= copy_level && dest_level->fence_pointer_count > 0)
     {
         free(dest_level->fence_pointers);
@@ -621,6 +644,12 @@ void copy_level(level *dest_level, level *src_level, int dest_max_level, int cop
     {
         remove(dest_level->filepath);
     }
+    // if destination level has at least one item, free the bloom filter
+    if (copy_level >= 1 && dest_level->count > 0)
+    {
+        bloom_filter_t_destroy(&dest_level->bloom_filter);
+    }
+
     // copy level
     memcpy(dest_level, src_level, sizeof(level));
     // copy fence pointers if i>= 1 (past flush buffer level) a
@@ -629,6 +658,7 @@ void copy_level(level *dest_level, level *src_level, int dest_max_level, int cop
         dest_level->fence_pointers = (fence_pointer *)malloc(sizeof(fence_pointer) * src_level->fence_pointer_count);
         memcpy(dest_level->fence_pointers, src_level->fence_pointers, sizeof(fence_pointer) * src_level->fence_pointer_count);
     }
+
     free(src_level->fence_pointers);
 }
 

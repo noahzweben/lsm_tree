@@ -1,5 +1,7 @@
 #include <pthread.h>
 #include <stdbool.h>
+#include <bloom.h>
+
 #ifndef CS265_LSM // This is a header guard. It prevents the header from being included more than once.
 #define CS265_LSM
 
@@ -30,6 +32,7 @@ typedef struct level
     char filepath[64];
     int fence_pointer_count;
     fence_pointer *fence_pointers;
+    bloom_filter_t bloom_filter;
 
 } level;
 
@@ -63,6 +66,7 @@ void flush_to_level(level **new_levels, lsmtree const *original_lsm, int *level)
 void reset_level(level *level, int level_num, int level_size);
 void compact(node *buffer, int *buffer_size);
 void build_fence_pointers(level *level, node *buffer, int buffer_size);
+void build_bloom_filter(level *level, node *buffer, int buffer_size);
 void copy_tree(lsmtree *new_lsm, level *src_levels, int num_layers);
 void range_from_disk(level *range_level, node **nodes, int *n_results, keyType start, keyType finish);
 // threaded
