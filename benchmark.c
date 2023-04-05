@@ -1,4 +1,5 @@
 #include <sys/time.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -50,8 +51,9 @@ int main(int argc, char **argv)
 
   gettimeofday(&stop, NULL);
   double secs = (double)(stop.tv_usec - start.tv_usec) / 1000000 + (double)(stop.tv_sec - start.tv_sec);
+  // sleep(2);
   printf("%d insertions took %f seconds\n", num_inserts, secs);
-
+  printf("Max level: %d\n", lsm->max_level);
   // if command line arg writes is passed, end program
   if (argc > 1 && strcmp(argv[1], "writes") == 0)
   {

@@ -39,7 +39,6 @@ void print_tree(char *msg, lsmtree *lsm)
     printf("\n");
 }
 
-
 void set_filename(char *filename)
 {
     uuid_t uuid;
@@ -48,6 +47,32 @@ void set_filename(char *filename)
     uuid_unparse_lower(uuid, uuid_str);
     sprintf(filename, "%s.bin", uuid_str);
 }
+
+// // function pointer to compare function
+// int compare(const void *a, const void *b)
+// {
+//     node *node_a = (node *)a;
+//     node *node_b = (node *)b;
+
+//     if (node_a->key - node_b->key < 0)
+//     {
+//         return -1;
+//     }
+//     else if (node_a->key - node_b->key > 0)
+//     {
+//         return 1;
+//     }
+//     else
+//     {
+//         return 0;
+//     }
+// }
+
+// void merge_sort(node *buffer, int buffer_size)
+// {
+//     // use qsort from c
+//     qsort(buffer, buffer_size, sizeof(node), &compare);
+// }
 
 void SORT_TYPE_CPY(node *dst, node *src, const int size)
 {
@@ -122,8 +147,10 @@ void merge_sort(node *buffer, int buffer_size)
     free(new_buffer);
 }
 
-void NULL_pointer_check(void *pointer, char * msg){
-    if (pointer == NULL){
+void NULL_pointer_check(void *pointer, char *msg)
+{
+    if (pointer == NULL)
+    {
         printf("%s\n", msg);
         exit(1);
     }

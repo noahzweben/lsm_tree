@@ -49,7 +49,7 @@ void destroy(lsmtree *lsm);
 void insert(lsmtree *lsm, keyType key, valType value);
 void delete_key(lsmtree *lsm, keyType key);
 int get(lsmtree *lsm, keyType key);
-node *range(lsmtree *lsm, keyType start, keyType finish);
+void range(lsmtree *lsm, node **nodes, int *n_results, keyType start, keyType finish);
 
 // ------------------------------------------------------------------
 
@@ -64,7 +64,7 @@ void reset_level(level *level, int level_num, int level_size);
 void compact(node *buffer, int *buffer_size);
 void build_fence_pointers(level *level, node *buffer, int buffer_size);
 void copy_tree(lsmtree *new_lsm, level *src_levels, int num_layers);
-
+void range_from_disk(level *range_level, node **nodes, int *n_results, keyType start, keyType finish);
 // threaded
 void *init_flush_thread(void *arg);
 

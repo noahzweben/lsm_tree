@@ -409,8 +409,7 @@ void multi_thread_writes_test()
         assert(getR == 2 * i);
     }
 
-
-    sleep(5);
+    sleep(2);
     destroy(lsm);
 }
 
@@ -452,7 +451,83 @@ void multi_thread_read_test()
         pthread_join(thread_array[i], NULL);
     }
 
-    sleep(5);
+    sleep(2);
+    destroy(lsm);
+}
+
+void range_test_memory()
+{
+    printf("range_test_memory\n");
+    lsmtree *lsm = create(100);
+    for (int i = 0; i < 70; i++)
+    {
+        insert(lsm, i, 2 * i);
+    }
+    int n_results = 0;
+    node *results = NULL;
+    range(lsm, &results, &n_results, 40, 45);
+
+    assert(n_results == 5);
+    for (int i = 0; i < n_results; i++)
+    {
+        assert(results[i].key == 40 + i);
+        assert(results[i].value == 2 * (40 + i));
+        assert(results[i].delete == false);
+    }
+
+    free(results);
+    sleep(1);
+    destroy(lsm);
+}
+
+void range_test_complex()
+{
+    printf("range_test_complex\n");
+    lsmtree *lsm = create(10);
+    for (int i = 0; i < 2000; i++)
+    {
+        insert(lsm, i, 2 * i);
+    }
+
+    int n_results = 0;
+    node *results = NULL;
+    range(lsm, &results, &n_results, 80, 1400);
+    assert(n_results == 1320);
+
+    for (int i = 0; i < n_results; i++)
+    {
+        assert(results[i].key == 80 + i);
+        assert(results[i].value == 2 * (80 + i));
+        assert(results[i].delete == false);
+    }
+
+    // // ensure picking up newest values
+    for (int i = 700; i < 1200; i++)
+    {
+        insert(lsm, i, 3 * i);
+    }
+    free(results);
+    results = NULL;
+    n_results = 0;
+    range(lsm, &results, &n_results, 80, 1400);
+    assert(n_results == 1320);
+
+    for (int i = 0; i < n_results; i++)
+    {
+        assert(results[i].key == 80 + i);
+        if (results[i].key < 700 || results[i].key >= 1200)
+        {
+            assert(results[i].value == 2 * (80 + i));
+        }
+        else
+        {
+            assert(results[i].value == 3 * (80 + i));
+        }
+        assert(results[i].delete == false);
+    }
+
+    free(results);
+    sleep(1);
     destroy(lsm);
 }
 
@@ -475,6 +550,8 @@ int main(void)
     delete_test();
     multi_thread_writes_test();
     multi_thread_read_test();
+    range_test_memory();
+    range_test_complex();
 
     return 0;
 }
