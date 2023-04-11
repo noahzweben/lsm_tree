@@ -34,6 +34,8 @@ void time_n_insertions(int n)
   {
     random_array[i] = (node){.delete = false, rand(), rand()};
   }
+  struct timeval stop, start;
+  gettimeofday(&start, NULL);
 
   // insert each node in random_array
   for (int i = 0; i < num_inserts; i++)
@@ -41,16 +43,6 @@ void time_n_insertions(int n)
     insert(lsm, random_array[i].key, random_array[i].value);
   }
 
-  // shuffle list
-  shuffle_list(random_array, num_inserts);
-
-  struct timeval stop, start;
-  gettimeofday(&start, NULL);
-  // measure how long gets take
-  for (int i = 0; i < num_inserts; i++)
-  {
-    get(lsm, random_array[i].key);
-  }
   gettimeofday(&stop, NULL);
   double secs = (double)(stop.tv_usec - start.tv_usec) / 1000000 + (double)(stop.tv_sec - start.tv_sec);
   printf("%d, %f\n", num_inserts, secs);
