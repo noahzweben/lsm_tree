@@ -244,7 +244,9 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
         bloom_filter_t_destroy(&(new_levels[fresh_level].bloom_filter));
     }
 
-    // Remove old fence pointers
+    // Remove old fence pointers, these are safe to free (won't interfere with main lsm reads)
+    // because  fence pointers shallower in the tree at this point have already been overwritten
+    // as part of the new_levels context
     if (new_levels[fresh_level].fence_pointer_count > 0)
     {
         free(new_levels[fresh_level].fence_pointers);

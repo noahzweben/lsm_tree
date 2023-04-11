@@ -1,6 +1,6 @@
 #include <pthread.h>
 #include <stdbool.h>
-#include <bloom.h>
+#include "bloom.h"
 
 #ifndef CS265_LSM // This is a header guard. It prevents the header from being included more than once.
 #define CS265_LSM

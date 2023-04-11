@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <stdbool.h>
-#include <bloom.h>
+#include "bloom.h"
 
 void basic_buffer_test()
 {

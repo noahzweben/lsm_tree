@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <bloom.h>
+#include "bloom.h"
 
 void bloom_filter_t_init(bloom_filter_t *bf, int size, int num_hashes)
 {
