@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include "bloom.h"
+#include <stdio.h>
 
 void bloom_filter_t_init(bloom_filter_t *bf, int size, int num_hashes)
 {
@@ -22,6 +23,10 @@ void bloom_filter_t_add(bloom_filter_t *bf, int item)
 
 bool bloom_filter_t_lookup(bloom_filter_t *bf, int item)
 {
+
+    if (bf->filter == NULL){
+        return false;
+    }
     for (int i = 0; i < bf->num_hashes; i++)
     {
         int32_t hash = item * (i + 1);
@@ -35,4 +40,6 @@ bool bloom_filter_t_lookup(bloom_filter_t *bf, int item)
 void bloom_filter_t_destroy(bloom_filter_t *bf)
 {
     free(bf->filter);
+    bf->filter = NULL;
+    
 }

@@ -616,10 +616,8 @@ void build_bloom_filter(level *level, node *buffer, int buffer_size)
     // add to buffer if delete == false
     for (int i = 0; i < buffer_size; i++)
     {
-        if (!buffer[i].delete)
-        {
-            bloom_filter_t_add(&bf, buffer[i].key);
-        }
+        bloom_filter_t_add(&bf, buffer[i].key);
+
     }
     level->bloom_filter = bf;
 }

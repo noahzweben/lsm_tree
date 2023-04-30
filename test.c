@@ -340,7 +340,7 @@ void delete_test()
     // insert 400 nodes with the same key and increasing values
     for (int i = 0; i < writes; i++)
     {
-        insert(lsm, i, 2 * i);
+        insert(lsm, i, 2 * i + 1);
     }
     // delete all multiples of 5
     for (int i = 0; i < writes; i++)
@@ -351,7 +351,7 @@ void delete_test()
         }
     }
     // ensure that the values are correct
-    sleep(2);
+    sleep(2);    
     for (int i = 0; i < writes; i++)
     {
         int getR = get(lsm, i);
@@ -361,7 +361,7 @@ void delete_test()
         }
         else
         {
-            assert(getR == 2 * i);
+            assert(getR == 2 * i + 1);
         }
     }
 
