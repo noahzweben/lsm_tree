@@ -19,6 +19,7 @@
         "stat.h": "c",
         "stdbool.h": "c",
         "time.h": "c",
-        "unordered_map": "c"
+        "unordered_map": "c",
+        "pthread.h": "c"
     }
 }

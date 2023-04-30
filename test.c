@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include "bloom.h"
 
 void basic_buffer_test()
 {
@@ -531,6 +532,33 @@ void range_test_complex()
     destroy(lsm);
 }
 
+void bloom_filter_t_test()
+{
+    printf("bloom_filter_t_test\n");
+    bloom_filter_t bf;
+    bloom_filter_t_init(&bf, 1000, 1);
+    for (int i = 0; i < 100; i++)
+    {
+        bloom_filter_t_add(&bf, i);
+    };
+    for (int i = 0; i < 100; i++)
+    {
+        assert(bloom_filter_t_lookup(&bf, i));
+    };
+    // for i between 100 and 1000, check that there are fewer than 100 false positives
+    int false_positives = 0;
+    for (int i = 100; i < 1000; i++)
+    {
+        if (bloom_filter_t_lookup(&bf, i))
+        {
+            false_positives++;
+        }
+    }
+    assert(false_positives < 100);
+
+    bloom_filter_t_destroy(&bf);
+}
+
 int main(void)
 {
     printf("size of bool %lu\n", sizeof(bool));
@@ -552,6 +580,7 @@ int main(void)
     multi_thread_read_test();
     range_test_memory();
     range_test_complex();
+    bloom_filter_t_test();
 
     return 0;
 }
