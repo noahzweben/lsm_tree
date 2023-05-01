@@ -50,7 +50,7 @@ typedef struct lsmtree
 lsmtree *create(int buffer_size);
 void destroy(lsmtree *lsm);
 void insert(lsmtree *lsm, keyType key, valType value);
-void delete_key(lsmtree *lsm, keyType key);
+void delete(lsmtree *lsm, keyType key);
 int get(lsmtree *lsm, keyType key);
 void range(lsmtree *lsm, node **nodes, int *n_results, keyType start, keyType finish);
 

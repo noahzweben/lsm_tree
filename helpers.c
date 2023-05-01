@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <uuid/uuid.h>
 #include <stdbool.h>
-
+#include <stdint.h>
 void print_tree(char *msg, lsmtree *lsm)
 {
     printf("%s\n", msg);

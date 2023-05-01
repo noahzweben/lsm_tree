@@ -57,7 +57,7 @@ void insert(lsmtree *lsm, keyType key, valType value)
     __insert(lsm, n);
 }
 
-void delete_key(lsmtree *lsm, keyType key)
+void delete(lsmtree *lsm, keyType key)
 {
     node n = {.delete = true, .key = key, .value = 0};
     __insert(lsm, n);

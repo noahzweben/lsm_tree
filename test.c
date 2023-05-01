@@ -347,11 +347,11 @@ void delete_test()
     {
         if (i % 5 == 0)
         {
-            delete_key(lsm, i);
+            delete (lsm, i);
         }
     }
     // ensure that the values are correct
-    sleep(2);    
+    sleep(2);
     for (int i = 0; i < writes; i++)
     {
         int getR = get(lsm, i);

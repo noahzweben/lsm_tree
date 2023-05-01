@@ -12,10 +12,13 @@ else
 endif
 
 
-default: main test benchmark
+default: main test benchmark client
 
 %.o: %.c %.h
 	$(CC) -c -o $@ $< $(CFLAGS)
+
+client: client.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LIBS)
 
 main: lsm.o main.o helpers.o bloom.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LIBS)
