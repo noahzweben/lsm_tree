@@ -13,6 +13,11 @@
        __typeof__ (b) _b = (b); \
      _a > _b ? _a : _b; })
 
+#define min(a, b) \
+    ({ __typeof__ (a) _a = (a); \
+       __typeof__ (b) _b = (b); \
+     _a < _b ? _a : _b; })
+
 int BLOCK_SIZE_NODES = 4096 / sizeof(node);
 // merge mutex
 pthread_mutex_t merge_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -155,7 +160,9 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
     level *new_levels = *new_levels_wrapper;
 
     // initialize and copy over layer metadata (one at a time as needed to avoid additional work)
-    reset_level(&(new_levels[deeper_level]), deeper_level, new_levels[fresh_level].size * 10);
+    int new_level_size = new_levels[fresh_level].size * 10;
+    printf("new level size %d\n", new_level_size);
+    reset_level(&(new_levels[deeper_level]), deeper_level, new_level_size);
     if (deeper_level <= lsm->max_level)
     {
         memcpy(&new_levels[deeper_level], &lsm->levels[deeper_level], sizeof(level));
@@ -617,7 +624,6 @@ void build_bloom_filter(level *level, node *buffer, int buffer_size)
     for (int i = 0; i < buffer_size; i++)
     {
         bloom_filter_t_add(&bf, buffer[i].key);
-
     }
     level->bloom_filter = bf;
 }
