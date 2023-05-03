@@ -24,7 +24,8 @@ void bloom_filter_t_add(bloom_filter_t *bf, int item)
 bool bloom_filter_t_lookup(bloom_filter_t *bf, int item)
 {
 
-    if (bf->filter == NULL){
+    if (bf->filter == NULL)
+    {
         return false;
     }
     for (int i = 0; i < bf->num_hashes; i++)
@@ -41,5 +42,4 @@ void bloom_filter_t_destroy(bloom_filter_t *bf)
 {
     free(bf->filter);
     bf->filter = NULL;
-    
 }
