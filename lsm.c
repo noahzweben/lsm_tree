@@ -8,6 +8,8 @@
 #include <unistd.h>
 #include <stdbool.h>
 
+uint32_t nodes_moved = 0;
+
 #define max(a, b) \
     ({ __typeof__ (a) _a = (a); \
        __typeof__ (b) _b = (b); \
@@ -31,6 +33,7 @@ argument.
 */
 lsmtree *create(int buffer_size)
 {
+    nodes_moved = 0;
     lsmtree *lsm = (lsmtree *)malloc(sizeof(lsmtree));
     NULL_pointer_check(lsm, "Error1: malloc failed in create");
 
@@ -209,7 +212,8 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
     // (it may not if this is our first time at this layer)
     if (fp_deep_layer != NULL)
     {
-        fread(buffer, sizeof(node), new_levels[deeper_level].count, fp_deep_layer);
+        size_t reads = fread(buffer, sizeof(node), new_levels[deeper_level].count, fp_deep_layer);
+        nodes_moved = nodes_moved + reads;
     }
 
     // Read fresher level into buffer
@@ -221,7 +225,8 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
     }
     else
     {
-        fread(buffer + new_levels[deeper_level].count, sizeof(node), new_levels[fresh_level].count, fp_fresher_layer);
+        size_t reads = fread(buffer + new_levels[deeper_level].count, sizeof(node), new_levels[fresh_level].count, fp_fresher_layer);
+        nodes_moved = nodes_moved + reads;
     }
 
     // BUILD THE NEW LAYER + INDECES
@@ -230,6 +235,7 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
     compact(buffer, &buffer_size);
     // write buffer to new level
     fwrite(buffer, sizeof(node), buffer_size, fp_temp);
+    nodes_moved = nodes_moved + buffer_size;
     // Store new fileapth you created
     strcpy(new_levels[deeper_level].filepath, new_path);
     build_fence_pointers(&(new_levels[deeper_level]), buffer, buffer_size);
@@ -563,6 +569,8 @@ void destroy(lsmtree *lsm)
     pthread_mutex_lock(&merge_mutex);
     pthread_mutex_lock(&write_mutex);
     pthread_rwlock_wrlock(&rwlock);
+
+    printf("Nodes Moved: %d, Pages: %d\n\n", nodes_moved, nodes_moved / BLOCK_SIZE_NODES);
 
     // loop through levels and remove filepath
     for (int i = 1; i <= lsm->max_level; i++)
