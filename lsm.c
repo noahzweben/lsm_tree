@@ -161,7 +161,6 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
 
     // initialize and copy over layer metadata (one at a time as needed to avoid additional work)
     int new_level_size = new_levels[fresh_level].size * 10;
-    printf("new level size %d\n", new_level_size);
     reset_level(&(new_levels[deeper_level]), deeper_level, new_level_size);
     if (deeper_level <= lsm->max_level)
     {

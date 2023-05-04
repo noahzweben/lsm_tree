@@ -53,7 +53,7 @@ void time_n_insertions(int n)
 int main(void)
 {
 
-  for (int i = 2300000; i < 10000000; i = i + 100000)
+  for (int i = 2600000; i < 10000000; i = i + 100000)
   {
     time_n_insertions(i);
   }
