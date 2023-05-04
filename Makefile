@@ -8,7 +8,7 @@ LIBS =
 ifeq ($(shell uname),Darwin)
 	LIBS += 
 else
-	LIBS += -luuid -lpthread
+	LIBS += -luuid -lpthread -lm
 endif
 
 
