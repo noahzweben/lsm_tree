@@ -7,6 +7,7 @@
 #include "lsm.h"
 #include <stdbool.h>
 #include <string.h>
+#include <math.h>
 
 void shuffle_list(node *random_array, int size)
 {
@@ -30,10 +31,12 @@ void time_n_insertions(int n)
   lsmtree *lsm = create(NODE_NUM);
 
   node *random_array = (node *)malloc(sizeof(node) * num_inserts);
+  // printf("creating random array\n");
   for (int i = 0; i < num_inserts; i++)
   {
     random_array[i] = (node){.delete = false, rand(), rand()};
   }
+  // printf("starting\n");
   struct timeval stop, start;
   gettimeofday(&start, NULL);
 
@@ -45,7 +48,7 @@ void time_n_insertions(int n)
 
   gettimeofday(&stop, NULL);
   double secs = (double)(stop.tv_usec - start.tv_usec) / 1000000 + (double)(stop.tv_sec - start.tv_sec);
-  printf("%d, %f\n", num_inserts, secs);
+  printf("%d, %f, %f\n", num_inserts, secs, num_inserts / secs);
   destroy(lsm);
   free(random_array);
 }
@@ -53,9 +56,10 @@ void time_n_insertions(int n)
 int main(void)
 {
 
-  for (int i = 2600000; i < 10000000; i = i + 100000)
+  for (int i = 1; i < 9; i = i + 1)
   {
-    time_n_insertions(i);
+    int insertions = (int)pow(10, i);
+    time_n_insertions(insertions);
   }
   return 0;
 }

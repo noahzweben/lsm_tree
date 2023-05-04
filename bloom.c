@@ -6,7 +6,15 @@
 
 void bloom_filter_t_init(bloom_filter_t *bf, int size, int num_hashes)
 {
-    bf->filter = (uint32_t *)calloc((size + 31) / 32, sizeof(uint32_t));
+    // make sure bf_size is not
+    uint32_t bf_size = ((uint32_t)size + 31) / 32;
+    bf->filter = (uint32_t *)calloc(bf_size, sizeof(uint32_t));
+    if (bf->filter == NULL)
+    {
+        printf("size: %d\n", bf_size);
+        fprintf(stderr, "Failed to allocate memory for bloom filter\n");
+        exit(1);
+    }
     bf->filter_size = size;
     bf->num_hashes = num_hashes;
 }
@@ -17,6 +25,7 @@ void bloom_filter_t_add(bloom_filter_t *bf, int item)
     {
         int32_t hash = item * (i + 1);
         uint32_t index = (uint32_t)hash % bf->filter_size;
+
         bf->filter[index >> 5] |= 1 << (index & 31);
     }
 }

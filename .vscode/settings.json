@@ -21,6 +21,7 @@
         "time.h": "c",
         "unordered_map": "c",
         "pthread.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "stdint.h": "c"
     }
 }
