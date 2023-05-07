@@ -20,25 +20,25 @@ struct args
 
 void *benchmarkThread(void *arguments)
 {
-    struct timeval stop, start;
-    gettimeofday(&start, NULL);
+    // struct timeval stop, start;
+    // gettimeofday(&start, NULL);
     struct args *args = arguments;
 
-    printf("Thread NUM_INSERTS: %d\n", args->num_inserts);
+    // printf("Thread NUM_INSERTS: %d\n", args->num_inserts);
 
     // insert each node in random_array
     for (int i = 0; i < args->num_inserts; i++)
     {
         insert(args->lsm, args->random_array[i].key, args->random_array[i].value);
     }
-    // for (int i = 0; i < args->num_gets; i++)
-    // {
-    //     get(args->lsm, args->gets_array[i]);
-    // }
+    for (int i = 0; i < args->num_gets; i++)
+    {
+        get(args->lsm, args->gets_array[i]);
+    }
 
-    gettimeofday(&stop, NULL);
-    double secs = (double)(stop.tv_usec - start.tv_usec) / 1000000 + (double)(stop.tv_sec - start.tv_sec);
-    printf("Thread: %f\n", secs);
+    // gettimeofday(&stop, NULL);
+    // double secs = (double)(stop.tv_usec - start.tv_usec) / 1000000 + (double)(stop.tv_sec - start.tv_sec);
+    // printf("Thread: %f\n", secs);
 
     return NULL;
 }
