@@ -11,6 +11,7 @@
 
 uint32_t nodes_moved = 0;
 double total_seconds = 0;
+uint32_t ms = 0;
 
 #define max(a, b) \
     ({ __typeof__ (a) _a = (a); \
@@ -70,12 +71,7 @@ lsmtree *create(int buffer_size)
 void insert(lsmtree *lsm, keyType key, valType value)
 {
     node n = {.delete = false, .key = key, .value = value};
-    struct timeval stop, start;
-    gettimeofday(&start, NULL);
     __insert(lsm, n);
-    gettimeofday(&stop, NULL);
-    // add number of seconds between start and stop to total_seconds
-    total_seconds = total_seconds + stop.tv_usec - start.tv_usec;
 }
 
 void delete(lsmtree *lsm, keyType key)
@@ -85,13 +81,25 @@ void delete(lsmtree *lsm, keyType key)
 }
 void __insert(lsmtree *lsm, node n)
 {
+    // get time spent waiting
+    struct timeval start, stop;
+    gettimeofday(&start, NULL);
+
     // get write mutex
     pthread_mutex_lock(&write_mutex);
+    ms += 1;
     // while memtable is full wait
     while (lsm->memtable_level->count == lsm->memtable_level->size)
     {
         pthread_cond_wait(&write_cond, &write_mutex);
     }
+
+    // get time spent waiting
+    gettimeofday(&stop, NULL);
+
+    total_seconds += (double)(stop.tv_usec - start.tv_usec) / 1000000 + (double)(stop.tv_sec - start.tv_sec);
+    ;
+
     // create new node on the stack
     lsm->memtable[lsm->memtable_level->count] = n;
     // if we do the increment after inserting the node, we can read
@@ -119,12 +127,15 @@ void __insert(lsmtree *lsm, node n)
 void *init_flush_thread(void *args)
 {
     pthread_mutex_lock(&merge_mutex);
+    ms += 1;
     lsmtree *lsm = (lsmtree *)args;
 
     // code to empty memtable and start accepting writes again
     // signals to waiting write threads that they can claim mutex
     pthread_mutex_lock(&write_mutex);
+    ms += 1;
     pthread_rwlock_wrlock(&rwlock);
+    ms += 1;
     // copy memtable to flush buffer and copy level metadata to level[0]
     memcpy(lsm->flush_buffer, lsm->memtable, lsm->memtable_level->size * sizeof(node));
     memcpy(&lsm->levels[0], lsm->memtable_level, sizeof(level));
@@ -301,12 +312,7 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
 int get(lsmtree *lsm, keyType key)
 {
     node *found_node = NULL;
-    struct timeval stop, start;
-    gettimeofday(&start, NULL);
     __get(lsm, &found_node, key);
-    gettimeofday(&stop, NULL);
-    // add number of seconds between start and stop to total_seconds
-    total_seconds = total_seconds + stop.tv_usec - start.tv_usec;
 
     if (found_node == NULL)
     {
@@ -587,8 +593,7 @@ void destroy(lsmtree *lsm)
     pthread_mutex_lock(&write_mutex);
     pthread_rwlock_wrlock(&rwlock);
 
-    // printf("Destroying LSM Tree\n");
-    // printf("Total seconds getting %f\n", (double)(total_seconds / 1000000.0));
+    printf("Total seconds waiting %f\n", total_seconds);
     // printf("Nodes Moved: %d, Pages: %d\n\n", nodes_moved, nodes_moved / BLOCK_SIZE_NODES);
 
     // loop through levels and remove filepath
