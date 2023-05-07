@@ -4,3 +4,4 @@ main
 test
 client
 *.bin
+workloads/reads/*
