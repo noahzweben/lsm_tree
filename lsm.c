@@ -10,9 +10,7 @@
 #include <sys/time.h>
 
 uint32_t nodes_moved = 0;
-uint32_t total_seconds = 0;
-int reads = 0;
-int levels = 0;
+double total_seconds = 0;
 
 #define max(a, b) \
     ({ __typeof__ (a) _a = (a); \
@@ -35,8 +33,14 @@ pthread_rwlock_t rwlock = PTHREAD_RWLOCK_INITIALIZER;
 Creates an initializes a new lsm tree. Takes memtable size as input
 argument.
 */
+
+void print_lol()
+{
+    printf("LOL %f\n", (double)total_seconds / (double)1000000.0);
+}
 lsmtree *create(int buffer_size)
 {
+    total_seconds = 0;
     nodes_moved = 0;
     lsmtree *lsm = (lsmtree *)malloc(sizeof(lsmtree));
     NULL_pointer_check(lsm, "Error1: malloc failed in create");
@@ -66,7 +70,12 @@ lsmtree *create(int buffer_size)
 void insert(lsmtree *lsm, keyType key, valType value)
 {
     node n = {.delete = false, .key = key, .value = value};
+    struct timeval stop, start;
+    gettimeofday(&start, NULL);
     __insert(lsm, n);
+    gettimeofday(&stop, NULL);
+    // add number of seconds between start and stop to total_seconds
+    total_seconds = total_seconds + stop.tv_usec - start.tv_usec;
 }
 
 void delete(lsmtree *lsm, keyType key)
@@ -291,7 +300,6 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
 
 int get(lsmtree *lsm, keyType key)
 {
-    reads = reads + 1;
     node *found_node = NULL;
     struct timeval stop, start;
     gettimeofday(&start, NULL);
@@ -357,7 +365,6 @@ void __get(lsmtree *lsm, node **find_node, keyType key)
     // loop through levels and search disk
     for (int i = 1; i <= lsm->max_level; i++)
     {
-        levels = levels + 1;
         get_from_disk(lsm, find_node, key, i);
         if (*find_node != NULL)
         {
@@ -580,10 +587,9 @@ void destroy(lsmtree *lsm)
     pthread_mutex_lock(&write_mutex);
     pthread_rwlock_wrlock(&rwlock);
 
-    printf("Destroying LSM Tree\n");
-    printf("Reads: %d, Levels: %d, Avg: %f\n", reads, levels, (double)levels / (double)reads);
-    printf("Total seconds getting %f\n", (double)(total_seconds / 1000000.0));
-    printf("Nodes Moved: %d, Pages: %d\n\n", nodes_moved, nodes_moved / BLOCK_SIZE_NODES);
+    // printf("Destroying LSM Tree\n");
+    // printf("Total seconds getting %f\n", (double)(total_seconds / 1000000.0));
+    // printf("Nodes Moved: %d, Pages: %d\n\n", nodes_moved, nodes_moved / BLOCK_SIZE_NODES);
 
     // loop through levels and remove filepath
     for (int i = 1; i <= lsm->max_level; i++)

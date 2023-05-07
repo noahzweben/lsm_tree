@@ -71,5 +71,6 @@ void copy_tree(lsmtree *new_lsm, level *src_levels, int num_layers);
 void range_from_disk(level *range_level, node **nodes, int *n_results, keyType start, keyType finish);
 // threaded
 void *init_flush_thread(void *arg);
+void print_lol();
 
 #endif

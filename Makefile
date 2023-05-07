@@ -12,10 +12,11 @@ else
 endif
 
 
-default: main test benchmark client
+default: thread main test benchmark client
 
 %.o: %.c %.h
 	$(CC) -c -o $@ $< $(CFLAGS)
+
 
 client: client.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LIBS)
@@ -27,6 +28,9 @@ test: lsm.o test.o helpers.o bloom.o
 	$(CC) $(CFLAGS) -g -o $@ $^ $(LDFLAGS) $(LIBS)
 
 benchmark: lsm.o benchmark.o helpers.o bloom.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LIBS)
+
+thread: lsm.o thread.o helpers.o bloom.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LIBS)
 
 clean:
