@@ -1,5 +1,3 @@
-./generator --puts 10000000 --gets 10000 --deletes 1000 --gets-misses-ratio 0.0 --gets-skewness 0.2 > workload1b.txt
-
 10, 0.000001, 10000000.000000
 Nodes Moved: 0, Pages: 0
 

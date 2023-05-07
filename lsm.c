@@ -7,8 +7,12 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <sys/time.h>
 
 uint32_t nodes_moved = 0;
+uint32_t total_seconds = 0;
+int reads = 0;
+int levels = 0;
 
 #define max(a, b) \
     ({ __typeof__ (a) _a = (a); \
@@ -212,8 +216,7 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
     // (it may not if this is our first time at this layer)
     if (fp_deep_layer != NULL)
     {
-        size_t reads = fread(buffer, sizeof(node), new_levels[deeper_level].count, fp_deep_layer);
-        nodes_moved = nodes_moved + reads;
+        fread(buffer, sizeof(node), new_levels[deeper_level].count, fp_deep_layer);
     }
 
     // Read fresher level into buffer
@@ -225,8 +228,7 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
     }
     else
     {
-        size_t reads = fread(buffer + new_levels[deeper_level].count, sizeof(node), new_levels[fresh_level].count, fp_fresher_layer);
-        nodes_moved = nodes_moved + reads;
+        fread(buffer + new_levels[deeper_level].count, sizeof(node), new_levels[fresh_level].count, fp_fresher_layer);
     }
 
     // BUILD THE NEW LAYER + INDECES
@@ -235,7 +237,6 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
     compact(buffer, &buffer_size);
     // write buffer to new level
     fwrite(buffer, sizeof(node), buffer_size, fp_temp);
-    nodes_moved = nodes_moved + buffer_size;
     // Store new fileapth you created
     strcpy(new_levels[deeper_level].filepath, new_path);
     build_fence_pointers(&(new_levels[deeper_level]), buffer, buffer_size);
@@ -290,8 +291,14 @@ void flush_to_level(level **new_levels_wrapper, lsmtree const *lsm, int *depth)
 
 int get(lsmtree *lsm, keyType key)
 {
+    reads = reads + 1;
     node *found_node = NULL;
+    struct timeval stop, start;
+    gettimeofday(&start, NULL);
     __get(lsm, &found_node, key);
+    gettimeofday(&stop, NULL);
+    // add number of seconds between start and stop to total_seconds
+    total_seconds = total_seconds + stop.tv_usec - start.tv_usec;
 
     if (found_node == NULL)
     {
@@ -322,6 +329,7 @@ void set_find_node(node **find_node, node *n)
 // get a value
 void __get(lsmtree *lsm, node **find_node, keyType key)
 {
+
     //  get read lock for rwlock
     pthread_rwlock_rdlock(&rwlock);
     // MOST RECENT: search memtable for key starting form back
@@ -349,6 +357,7 @@ void __get(lsmtree *lsm, node **find_node, keyType key)
     // loop through levels and search disk
     for (int i = 1; i <= lsm->max_level; i++)
     {
+        levels = levels + 1;
         get_from_disk(lsm, find_node, key, i);
         if (*find_node != NULL)
         {
@@ -403,6 +412,7 @@ void get_from_disk(lsmtree *lsm, node **find_node, keyType key, int get_level)
 
     // read in BLOCK_SIZE_NODES nodes and print number of nodes read
     int r = fread(nodes, sizeof(node), BLOCK_SIZE_NODES, fp);
+    nodes_moved = nodes_moved + r;
 
     // if fence pointer key is equal to key, return node at index 0 (don't do extra work of binary search)
     if (lsm->levels[get_level].fence_pointer_count > 0 && lsm->levels[get_level].fence_pointers[fence_pointer_index].key == key)
@@ -570,6 +580,9 @@ void destroy(lsmtree *lsm)
     pthread_mutex_lock(&write_mutex);
     pthread_rwlock_wrlock(&rwlock);
 
+    printf("Destroying LSM Tree\n");
+    printf("Reads: %d, Levels: %d, Avg: %f\n", reads, levels, (double)levels / (double)reads);
+    printf("Total seconds getting %f\n", (double)(total_seconds / 1000000.0));
     printf("Nodes Moved: %d, Pages: %d\n\n", nodes_moved, nodes_moved / BLOCK_SIZE_NODES);
 
     // loop through levels and remove filepath

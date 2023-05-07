@@ -46,7 +46,7 @@ void communicate_with_server(int client_socket, char *filename)
 
             // Print the server's response
             recv_buffer[bytes_received] = '\0';
-            printf("%s", recv_buffer);
+            // printf("%s", recv_buffer);
 
             // if the server sends a newline char, break out of the loop
             if (recv_buffer[bytes_received - 1] == '\n')

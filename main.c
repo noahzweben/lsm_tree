@@ -24,9 +24,8 @@ void *handle_connection(void *thread_args)
     thread_args_t *args = (thread_args_t *)thread_args;
 
     int client_socket = args->client_socket;
-    lsmtree *lsm = args->lsm;
-    get(lsm, 1);
-
+    // lsmtree *lsm = args->lsm;
+    lsmtree *lsm = create(NODE_NUM);
     ssize_t bytes_received;
 
     // Receive the message from the client
@@ -48,7 +47,7 @@ void *handle_connection(void *thread_args)
 
         // Print the client's message
         buffer[bytes_received] = '\0';
-        printf("Client message: %s\n", buffer);
+        // printf("Client message: %s\n", buffer);
 
         char command;
         int x, y;
@@ -132,6 +131,7 @@ void *handle_connection(void *thread_args)
     // Close the connection
     close(client_socket);
     printf("Connection closed\n");
+    destroy(lsm);
 
     return NULL;
 }
